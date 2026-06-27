@@ -1,6 +1,7 @@
 const fileInput = document.getElementById("fileInput");
 const fileStatus = document.getElementById("fileStatus");
 const messageBox = document.getElementById("messageBox");
+const demoExamBtn = document.getElementById("demoExamBtn");
 const examSection = document.getElementById("examSection");
 const examList = document.getElementById("examList");
 const previewSection = document.getElementById("previewSection");
@@ -18,6 +19,9 @@ const timeLimitInput = document.getElementById("timeLimit");
 const startQuizBtn = document.getElementById("startQuizBtn");
 const quizList = document.getElementById("quizList");
 const submitQuizBtn = document.getElementById("submitQuizBtn");
+const answeredCount = document.getElementById("answeredCount");
+const unansweredCount = document.getElementById("unansweredCount");
+const quizProgressBody = document.getElementById("quizProgressBody");
 const timerBox = document.getElementById("timerBox");
 const timerText = document.getElementById("timerText");
 const timerWarning = document.getElementById("timerWarning");
@@ -31,6 +35,90 @@ const scrollHistoryBtn = document.getElementById("scrollHistoryBtn");
 
 const STORAGE_KEY = "aiken_quiz_history";
 const OPTION_LABELS = ["A", "B", "C", "D"];
+const DEMO_EXAM_ID = "demo-exam";
+const DEMO_EXAM_CONTENT = `Theo Nghị quyết số 79, kinh tế nhà nước giữ vai trò như thế nào trong nền kinh tế thị trường định hướng xã hội chủ nghĩa?
+A. Là lực lượng nòng cốt điều tiết thị trường và bảo đảm cân đối cung cầu hàng hóa cơ bản.
+B. Giữ vai trò chủ đạo, bảo đảm ổn định vĩ mô, các cân đối lớn của nền kinh tế và định hướng chiến lược phát triển.
+C. Là khu vực kinh tế quyết định tốc độ tăng trưởng và quy mô của nền kinh tế quốc dân.
+D. Đóng vai trò trung tâm trong việc điều phối nguồn lực và phân bổ đầu tư toàn xã hội.
+ANSWER: B
+
+Theo mục tiêu cụ thể đến năm 2030, tỷ lệ huy động nguồn ngân sách nhà nước giai đoạn 2026 - 2030 được đặt ra khoảng bao nhiêu?
+A. Khoảng 16% GDP nhằm bảo đảm cân đối thu chi ngân sách trong dài hạn.
+B. Khoảng 18% GDP để đáp ứng yêu cầu phát triển kinh tế - xã hội trong giai đoạn mới.
+C. Khoảng 20% GDP nhằm bảo đảm nguồn lực cho các chương trình phát triển quốc gia.
+D. Khoảng 22% GDP để tăng khả năng đầu tư phát triển kết cấu hạ tầng.
+ANSWER: B
+
+Theo mục tiêu đến năm 2030, tỷ lệ bội chi ngân sách nhà nước được xác định ở mức khoảng bao nhiêu?
+A. Khoảng 3% GDP nhằm bảo đảm ổn định tài chính quốc gia.
+B. Khoảng 3,2% GDP nhằm bảo đảm ổn định tài chính quốc gia.
+C. Khoảng 3,5% GDP nhằm bảo đảm ổn định tài chính quốc gia.
+D. Khoảng 4% GDP nhằm bảo đảm ổn định tài chính quốc gia.
+ANSWER: A
+
+Theo mục tiêu phát triển doanh nghiệp nhà nước đến năm 2030, phấn đấu có bao nhiêu doanh nghiệp nhà nước nằm trong nhóm 500 doanh nghiệp lớn nhất Đông Nam Á?
+A. Khoảng 45 doanh nghiệp nhà nước nằm trong nhóm 500 doanh nghiệp lớn nhất Đông Nam Á.
+B. Khoảng 50 doanh nghiệp nhà nước nằm trong nhóm 500 doanh nghiệp lớn nhất Đông Nam Á.
+C. Khoảng 55 doanh nghiệp nhà nước nằm trong nhóm 500 doanh nghiệp lớn nhất Đông Nam Á.
+D. Khoảng 60 doanh nghiệp nhà nước nằm trong nhóm 500 doanh nghiệp lớn nhất Đông Nam Á.
+ANSWER: B
+
+Theo mục tiêu đối với tổ chức tín dụng nhà nước đến năm 2030, phấn đấu có ít nhất bao nhiêu ngân hàng thương mại nhà nước thuộc nhóm 100 ngân hàng lớn nhất châu Á về tổng tài sản?
+A. Ít nhất 3 ngân hàng thương mại nhà nước thuộc nhóm 100 ngân hàng lớn nhất châu Á.
+B. Ít nhất 4 ngân hàng thương mại nhà nước thuộc nhóm 100 ngân hàng lớn nhất châu Á.
+C. Ít nhất 5 ngân hàng thương mại nhà nước thuộc nhóm 100 ngân hàng lớn nhất châu Á.
+D. Ít nhất 6 ngân hàng thương mại nhà nước thuộc nhóm 100 ngân hàng lớn nhất châu Á.
+ANSWER: A
+
+Theo quan điểm chỉ đạo, việc quản lý và sử dụng các nguồn lực kinh tế nhà nước phải được thực hiện theo nguyên tắc nào?
+A. Được thống kê, đánh giá và hạch toán đầy đủ theo nguyên tắc thị trường.
+B. Được thống kê, đánh giá và hạch toán đầy đủ theo nguyên tắc thị trường gắn với mục tiêu phát triển.
+C. Được thống kê, đánh giá và hạch toán đầy đủ theo nguyên tắc thị trường gắn với mục tiêu phát triển kinh tế.
+D. Được thống kê, đánh giá và hạch toán đầy đủ theo nguyên tắc thị trường gắn với mục tiêu phát triển kinh tế - xã hội.
+ANSWER: D
+
+Theo quan điểm chỉ đạo, kinh tế nhà nước phải đóng vai trò như thế nào trong quá trình phát triển kinh tế?
+A. Là lực lượng trung tâm điều tiết các cân đối kinh tế vĩ mô của nền kinh tế.
+B. Là lực lượng trung tâm điều tiết các cân đối lớn của nền kinh tế.
+C. Là lực lượng trung tâm điều tiết các cân đối lớn của nền kinh tế quốc dân.
+D. Là lực lượng trung tâm điều tiết các cân đối lớn của nền kinh tế quốc gia.
+ANSWER: D
+
+Theo đường lối đối ngoại của Đại hội XIV, mục tiêu cao nhất của hoạt động đối ngoại là gì?
+A. Mở rộng quan hệ hợp tác quốc tế nhằm thu hút tối đa nguồn lực cho phát triển kinh tế.
+B. Bảo đảm cao nhất lợi ích quốc gia - dân tộc trên cơ sở luật pháp quốc tế và Hiến chương Liên hợp quốc.
+C. Tăng cường vai trò và ảnh hưởng của Việt Nam trong các tổ chức khu vực và quốc tế.
+D. Xây dựng môi trường hòa bình, ổn định để thúc đẩy hội nhập kinh tế quốc tế.
+ANSWER: B
+
+Theo Văn kiện Đại hội XIV, các hoạt động đối ngoại của Việt Nam được triển khai đồng bộ trên ba trụ cột nào?
+A. Ngoại giao kinh tế - ngoại giao văn hóa - ngoại giao quốc phòng.
+B. Đối ngoại Đảng - ngoại giao Nhà nước - đối ngoại Nhân dân.
+C. Ngoại giao chính trị - ngoại giao kinh tế - ngoại giao đa phương.
+D. Ngoại giao song phương - ngoại giao đa phương - ngoại giao nhân dân.
+ANSWER: B
+
+Theo đường lối đối ngoại Đại hội XIV, phương châm của đối ngoại Việt Nam được xác định là gì?
+A. Phát huy vai trò tiên phong của đối ngoại trong giữ vững môi trường hòa bình, ổn định.
+B. Phát huy vai trò tiên phong của đối ngoại trong ngăn ngừa nguy cơ chiến tranh.
+C. Phát huy vai trò tiên phong của đối ngoại trong tạo lập môi trường hòa bình, ổn định.
+D. Phát huy vai trò tiên phong của đối ngoại trong bảo vệ lợi ích quốc gia.
+ANSWER: C
+
+Theo đường lối đối ngoại Đại hội XIV, Đại hội XIV của Đảng nhấn mạnh phát triển đối ngoại trong kỷ nguyên mới cần tương xứng với những yếu tố nào của đất nước?
+A. Thành tựu đổi mới, sức mạnh tổng hợp và uy tín quốc tế của đất nước.
+B. Thành tựu đổi mới, tiềm lực tổng hợp và uy tín quốc tế của đất nước.
+C. Thành tựu đổi mới, sức mạnh tổng hợp và vị thế quốc tế của đất nước.
+D. Thành tựu đổi mới, tiềm lực tổng hợp và vị thế quốc tế của đất nước.
+ANSWER: A
+
+Theo đường lối đối ngoại Đại hội XIV, quan điểm "tự chủ chiến lược", "tự cường" trong đối ngoại được nhấn mạnh dựa trên cơ sở nào?
+A. Tư tưởng của Đảng và Chủ tịch Hồ Chí Minh về phát huy nội lực kết hợp với sức mạnh quốc tế.
+B. Tư tưởng của Đảng và Chủ tịch Hồ Chí Minh về phát huy sức mạnh nội lực và sức mạnh quốc tế.
+C. Tư tưởng của Đảng và Chủ tịch Hồ Chí Minh về phát huy sức mạnh nội lực kết hợp sức mạnh quốc tế.
+D. Tư tưởng của Đảng và Chủ tịch Hồ Chí Minh về kết hợp sức mạnh nội lực với sức mạnh quốc tế.
+ANSWER: C`;
 
 let importedQuestions = [];
 let importErrors = [];
@@ -44,6 +132,7 @@ let remainingSeconds = 0;
 let quizStartTime = null;
 
 fileInput.addEventListener("change", handleExamFileUpload);
+demoExamBtn.addEventListener("click", () => addDemoExam(false));
 startQuizBtn.addEventListener("click", startQuiz);
 submitQuizBtn.addEventListener("click", () => submitQuiz(false));
 clearHistoryBtn.addEventListener("click", clearHistory);
@@ -53,7 +142,40 @@ scrollHistoryBtn.addEventListener("click", () => {
   document.getElementById("historySection").scrollIntoView({ behavior: "smooth" });
 });
 
+addDemoExam(true);
 renderHistory();
+
+function addDemoExam(isInitialLoad) {
+  const existingDemo = exams.find((exam) => exam.id === DEMO_EXAM_ID);
+
+  if (existingDemo) {
+    selectExam(existingDemo.id);
+    showMessage("Đã chọn lại đề thi thử có sẵn.", "info");
+    return;
+  }
+
+  const demoExam = createExamFromContent("Đề thi thử trải nghiệm", DEMO_EXAM_CONTENT, DEMO_EXAM_ID);
+  exams = [demoExam, ...exams];
+  selectExam(demoExam.id);
+
+  if (isInitialLoad) {
+    showMessage("Đã chuẩn bị sẵn một đề thi thử để bạn trải nghiệm ngay.", "info");
+  } else {
+    showMessage("Đã thêm đề thi thử vào danh sách bài thi.", "info");
+  }
+}
+
+function createExamFromContent(fileName, content, id = cryptoRandomId()) {
+  const parsed = parseAiken(content);
+
+  return {
+    id,
+    fileName,
+    questions: parsed.questions,
+    errors: parsed.errors,
+    importedAt: new Date().toISOString()
+  };
+}
 
 async function handleExamFileUpload(event) {
   const files = Array.from(event.target.files || []);
@@ -73,15 +195,7 @@ async function handleExamFileUpload(event) {
   try {
     const newExams = await Promise.all(txtFiles.map(async (file) => {
       const content = await readTextFile(file);
-      const parsed = parseAiken(content);
-
-      return {
-        id: cryptoRandomId(),
-        fileName: file.name,
-        questions: parsed.questions,
-        errors: parsed.errors,
-        importedAt: new Date().toISOString()
-      };
+      return createExamFromContent(file.name, content);
     }));
 
     exams = [...exams, ...newExams];
@@ -292,6 +406,7 @@ function renderExamList() {
         <p class="eyebrow">Bài thi ${index + 1}</p>
         <h3>${escapeHTML(exam.fileName)}</h3>
         <div class="question-meta">
+          ${exam.id === DEMO_EXAM_ID ? '<span class="tag">Đề mẫu</span>' : ""}
           <span class="tag correct">${exam.questions.length} câu hợp lệ</span>
           <span class="tag ${exam.errors.length > 0 ? "incorrect" : ""}">${exam.errors.length} lỗi</span>
           <span class="tag">${formatDateTime(exam.importedAt)}</span>
@@ -421,6 +536,8 @@ function startQuiz() {
   resultSection.classList.add("hidden");
   quizSection.classList.remove("hidden");
   renderQuiz();
+  renderQuizProgress();
+  updateQuizProgress();
   setupTimer();
   quizSection.scrollIntoView({ behavior: "smooth" });
 }
@@ -431,6 +548,7 @@ function renderQuiz() {
   activeQuizQuestions.forEach((question, questionIndex) => {
     const card = document.createElement("article");
     card.className = "question-card";
+    card.id = `quiz-question-${question.id}`;
     card.innerHTML = `
       <h3>Câu ${questionIndex + 1}. ${escapeHTML(question.text)}</h3>
       <div class="answer-list">
@@ -446,7 +564,53 @@ function renderQuiz() {
         }).join("")}
       </div>
     `;
+    card.querySelectorAll("input[type='radio']").forEach((input) => {
+      input.addEventListener("change", updateQuizProgress);
+    });
     quizList.appendChild(card);
+  });
+}
+
+function renderQuizProgress() {
+  quizProgressBody.innerHTML = "";
+
+  activeQuizQuestions.forEach((question, index) => {
+    const row = document.createElement("tr");
+    row.dataset.questionId = question.id;
+    row.innerHTML = `
+      <td data-label="Câu"><strong>${index + 1}</strong></td>
+      <td data-label="Trạng thái"><span class="progress-status">Chưa trả lời</span></td>
+      <td data-label="Đã chọn"><span class="progress-answer">-</span></td>
+      <td data-label="Đi tới"><button class="ghost-button compact-button" type="button">Tới câu ${index + 1}</button></td>
+    `;
+
+    row.querySelector("button").addEventListener("click", () => {
+      document.getElementById(`quiz-question-${question.id}`).scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
+    quizProgressBody.appendChild(row);
+  });
+}
+
+function updateQuizProgress() {
+  const answers = collectAnswers();
+  const answeredTotal = activeQuizQuestions.filter((question) => Boolean(answers[question.id])).length;
+
+  answeredCount.textContent = answeredTotal;
+  unansweredCount.textContent = Math.max(0, activeQuizQuestions.length - answeredTotal);
+
+  activeQuizQuestions.forEach((question) => {
+    const row = quizProgressBody.querySelector(`tr[data-question-id="${question.id}"]`);
+    const selectedAnswer = answers[question.id];
+
+    if (!row) {
+      return;
+    }
+
+    row.classList.toggle("is-answered", Boolean(selectedAnswer));
+    row.classList.toggle("is-unanswered", !selectedAnswer);
+    row.querySelector(".progress-status").textContent = selectedAnswer ? "Đã trả lời" : "Chưa trả lời";
+    row.querySelector(".progress-answer").textContent = selectedAnswer || "-";
   });
 }
 

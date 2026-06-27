@@ -35,6 +35,10 @@
         <input id="fileInput" type="file" accept=".txt,text/plain" multiple>
       </label>
 
+      <div class="quick-actions">
+        <button id="demoExamBtn" class="ghost-button" type="button">Dùng đề thi thử</button>
+      </div>
+
       <div id="messageBox" class="message hidden" role="status"></div>
     </section>
 
@@ -120,6 +124,33 @@
           <small id="timerWarning"></small>
         </div>
       </div>
+
+      <section id="quizProgressPanel" class="progress-panel" aria-labelledby="progressTitle">
+        <div class="progress-heading">
+          <div>
+            <h3 id="progressTitle">Bảng tiến trình làm bài</h3>
+            <p class="muted-text">Theo dõi nhanh các câu đã trả lời trong bài thi.</p>
+          </div>
+          <div class="progress-counts">
+            <span><strong id="answeredCount">0</strong> đã trả lời</span>
+            <span><strong id="unansweredCount">0</strong> chưa trả lời</span>
+          </div>
+        </div>
+
+        <div class="progress-table-wrap">
+          <table class="progress-table">
+            <thead>
+              <tr>
+                <th>Câu</th>
+                <th>Trạng thái</th>
+                <th>Đã chọn</th>
+                <th>Đi tới</th>
+              </tr>
+            </thead>
+            <tbody id="quizProgressBody"></tbody>
+          </table>
+        </div>
+      </section>
 
       <div id="quizList" class="question-list"></div>
 
