@@ -291,6 +291,26 @@ h3 {
   margin-top: 18px;
 }
 
+#quizSection {
+  display: grid;
+  grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+#quizSection .quiz-topbar {
+  grid-column: 1 / -1;
+}
+
+#quizSection .question-list {
+  grid-column: 2;
+  margin-top: 0;
+}
+
+#submitQuizBtn {
+  grid-column: 2;
+}
+
 .question-card {
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -382,11 +402,17 @@ h3 {
 }
 
 .progress-panel {
-  margin-top: 18px;
+  position: sticky;
+  top: 12px;
+  z-index: 10;
+  grid-column: 1;
+  max-height: calc(100vh - 24px);
+  margin-top: 0;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface-soft);
   padding: 16px;
+  overflow: auto;
 }
 
 .progress-heading {
@@ -424,7 +450,8 @@ h3 {
 }
 
 .progress-table-wrap {
-  overflow-x: auto;
+  overflow: auto;
+  max-height: calc(100vh - 190px);
 }
 
 .progress-table {
@@ -665,6 +692,18 @@ h3 {
     grid-template-columns: 1fr;
   }
 
+  #quizSection {
+    display: block;
+  }
+
+  #quizSection .question-list {
+    margin-top: 12px;
+  }
+
+  #submitQuizBtn {
+    width: 100%;
+  }
+
   .exam-card {
     align-items: stretch;
     flex-direction: column;
@@ -689,6 +728,19 @@ h3 {
 
   .progress-counts {
     justify-content: flex-start;
+  }
+
+  .progress-panel {
+    top: 0;
+    max-height: 46vh;
+    margin: 12px -14px 14px;
+    border-left: 0;
+    border-right: 0;
+    border-radius: 0;
+  }
+
+  .progress-table-wrap {
+    max-height: calc(46vh - 120px);
   }
 
   .history-item {
@@ -777,7 +829,30 @@ h3 {
   }
 
   .progress-panel {
-    padding: 14px;
+    max-height: 44vh;
+    padding: 12px 14px;
+  }
+
+  .progress-heading {
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .progress-heading h3 {
+    font-size: 1rem;
+  }
+
+  .progress-heading .muted-text {
+    display: none;
+  }
+
+  .progress-counts span {
+    padding: 5px 9px;
+    font-size: 0.84rem;
+  }
+
+  .progress-table-wrap {
+    max-height: calc(44vh - 92px);
   }
 
   .progress-table,
