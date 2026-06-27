@@ -29,19 +29,30 @@
 
       <label class="upload-box" for="fileInput">
         <span class="upload-icon">TXT</span>
-        <span class="upload-title">Chọn file .txt định dạng Aiken</span>
+        <span class="upload-title">Chọn một hoặc nhiều file .txt định dạng Aiken</span>
         <span class="upload-note">File chỉ được đọc trên trình duyệt, không gửi lên server.</span>
-        <input id="fileInput" type="file" accept=".txt,text/plain">
+        <input id="fileInput" type="file" accept=".txt,text/plain" multiple>
       </label>
 
       <div id="messageBox" class="message hidden" role="status"></div>
     </section>
 
-    <section id="previewSection" class="panel hidden" aria-labelledby="previewTitle">
+    <section id="examSection" class="panel hidden" aria-labelledby="examTitle">
       <div class="section-heading">
         <div>
           <p class="eyebrow">Bước 2</p>
-          <h2 id="previewTitle">Xem trước câu hỏi</h2>
+          <h2 id="examTitle">Danh sách bài thi</h2>
+        </div>
+      </div>
+
+      <div id="examList" class="exam-list"></div>
+    </section>
+
+    <section id="previewSection" class="panel hidden" aria-labelledby="previewTitle">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Bước 3</p>
+          <h2 id="previewTitle">Bài thi đang chọn</h2>
         </div>
         <div class="summary-grid compact">
           <div>
@@ -66,7 +77,7 @@
     <section id="optionsSection" class="panel hidden" aria-labelledby="optionsTitle">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">Bước 3</p>
+          <p class="eyebrow">Bước 4</p>
           <h2 id="optionsTitle">Tùy chọn bài thi</h2>
         </div>
       </div>
@@ -100,7 +111,7 @@
     <section id="quizSection" class="panel hidden" aria-labelledby="quizTitle">
       <div class="quiz-topbar">
         <div>
-          <p class="eyebrow">Bước 4</p>
+          <p class="eyebrow">Bước 5</p>
           <h2 id="quizTitle">Làm bài trắc nghiệm</h2>
         </div>
         <div id="timerBox" class="timer hidden" aria-live="polite">

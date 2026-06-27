@@ -1,6 +1,8 @@
 const fileInput = document.getElementById("fileInput");
 const fileStatus = document.getElementById("fileStatus");
 const messageBox = document.getElementById("messageBox");
+const examSection = document.getElementById("examSection");
+const examList = document.getElementById("examList");
 const previewSection = document.getElementById("previewSection");
 const optionsSection = document.getElementById("optionsSection");
 const quizSection = document.getElementById("quizSection");
@@ -33,13 +35,15 @@ const OPTION_LABELS = ["A", "B", "C", "D"];
 let importedQuestions = [];
 let importErrors = [];
 let currentFileName = "";
+let exams = [];
+let selectedExamId = "";
 let activeQuizQuestions = [];
 let latestResult = null;
 let timerId = null;
 let remainingSeconds = 0;
 let quizStartTime = null;
 
-fileInput.addEventListener("change", handleFileUpload);
+fileInput.addEventListener("change", handleExamFileUpload);
 startQuizBtn.addEventListener("click", startQuiz);
 submitQuizBtn.addEventListener("click", () => submitQuiz(false));
 clearHistoryBtn.addEventListener("click", clearHistory);
@@ -51,42 +55,63 @@ scrollHistoryBtn.addEventListener("click", () => {
 
 renderHistory();
 
-function handleFileUpload(event) {
-  const file = event.target.files[0];
+async function handleExamFileUpload(event) {
+  const files = Array.from(event.target.files || []);
 
-  if (!file) {
+  if (files.length === 0) {
     return;
   }
 
-  if (!file.name.toLowerCase().endsWith(".txt")) {
+  const txtFiles = files.filter((file) => file.name.toLowerCase().endsWith(".txt"));
+
+  if (txtFiles.length === 0) {
     showMessage("Chỉ chấp nhận file .txt. Vui lòng chọn lại file.", "error");
     fileInput.value = "";
     return;
   }
 
-  const reader = new FileReader();
-  reader.onload = () => {
-    currentFileName = file.name;
-    const parsed = parseAiken(String(reader.result || ""));
-    importedQuestions = parsed.questions;
-    importErrors = parsed.errors;
-    fileStatus.textContent = file.name;
-    renderPreview();
+  try {
+    const newExams = await Promise.all(txtFiles.map(async (file) => {
+      const content = await readTextFile(file);
+      const parsed = parseAiken(content);
 
-    if (importedQuestions.length === 0) {
-      showMessage("Không tìm thấy câu hỏi hợp lệ. Vui lòng kiểm tra lại định dạng Aiken.", "error");
-    } else if (importErrors.length > 0) {
-      showMessage(`Đã đọc ${importedQuestions.length} câu hợp lệ và phát hiện ${importErrors.length} câu lỗi.`, "warning");
+      return {
+        id: cryptoRandomId(),
+        fileName: file.name,
+        questions: parsed.questions,
+        errors: parsed.errors,
+        importedAt: new Date().toISOString()
+      };
+    }));
+
+    exams = [...exams, ...newExams];
+    selectExam(newExams[newExams.length - 1].id);
+    fileInput.value = "";
+
+    const invalidCount = files.length - txtFiles.length;
+    const totalValidQuestions = newExams.reduce((sum, exam) => sum + exam.questions.length, 0);
+    const totalErrors = newExams.reduce((sum, exam) => sum + exam.errors.length, 0);
+    const invalidNote = invalidCount > 0 ? ` Bỏ qua ${invalidCount} file không phải .txt.` : "";
+
+    if (totalValidQuestions === 0) {
+      showMessage(`Đã tạo ${newExams.length} bài thi nhưng chưa tìm thấy câu hỏi hợp lệ.${invalidNote}`, "error");
+    } else if (totalErrors > 0 || invalidCount > 0) {
+      showMessage(`Đã tạo ${newExams.length} bài thi, đọc được ${totalValidQuestions} câu hợp lệ và phát hiện ${totalErrors} cụm lỗi.${invalidNote}`, "warning");
     } else {
-      showMessage(`Đã đọc thành công ${importedQuestions.length} câu hỏi hợp lệ.`, "info");
+      showMessage(`Đã tạo ${newExams.length} bài thi từ file .txt.`, "info");
     }
-  };
-
-  reader.onerror = () => {
+  } catch (error) {
     showMessage("Không đọc được file. Vui lòng thử lại.", "error");
-  };
+  }
+}
 
-  reader.readAsText(file, "UTF-8");
+function readTextFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(file, "UTF-8");
+  });
 }
 
 function parseAiken(content) {
@@ -201,33 +226,146 @@ function validateQuestion(question) {
   };
 }
 
-function renderPreview() {
-  previewSection.classList.remove("hidden");
-  validCount.textContent = importedQuestions.length;
-  errorCount.textContent = importErrors.length;
-  questionPreviewList.innerHTML = "";
+function getSelectedExam() {
+  return exams.find((exam) => exam.id === selectedExamId) || null;
+}
 
-  importedQuestions.forEach((question, index) => {
+function selectExam(examId) {
+  const exam = exams.find((item) => item.id === examId);
+
+  if (!exam) {
+    return;
+  }
+
+  selectedExamId = exam.id;
+  importedQuestions = exam.questions;
+  importErrors = exam.errors;
+  currentFileName = exam.fileName;
+  activeQuizQuestions = [];
+  latestResult = null;
+  fileStatus.textContent = exam.fileName;
+
+  renderExamList();
+  renderSelectedExamPreview();
+}
+
+function removeExam(examId) {
+  const wasSelected = selectedExamId === examId;
+  exams = exams.filter((exam) => exam.id !== examId);
+
+  if (wasSelected && exams.length > 0) {
+    selectExam(exams[0].id);
+    return;
+  }
+
+  if (wasSelected) {
+    clearSelectedExam();
+  }
+
+  renderExamList();
+}
+
+function clearSelectedExam() {
+  selectedExamId = "";
+  importedQuestions = [];
+  importErrors = [];
+  currentFileName = "";
+  activeQuizQuestions = [];
+  latestResult = null;
+  fileStatus.textContent = exams.length > 0 ? `${exams.length} bài thi` : "Chưa có file";
+  previewSection.classList.add("hidden");
+  optionsSection.classList.add("hidden");
+  quizSection.classList.add("hidden");
+  resultSection.classList.add("hidden");
+  stopTimer();
+}
+
+function renderExamList() {
+  examSection.classList.toggle("hidden", exams.length === 0);
+  examList.innerHTML = "";
+
+  exams.forEach((exam, index) => {
     const card = document.createElement("article");
-    card.className = "question-card";
+    card.className = `exam-card ${exam.id === selectedExamId ? "is-selected" : ""}`;
     card.innerHTML = `
-      <h3>Câu ${index + 1}. ${escapeHTML(question.text)}</h3>
-      <ul class="answer-list">
-        ${OPTION_LABELS.map((label) => `
-          <li class="answer-item ${label === question.correctAnswer ? "is-correct" : ""}">
-            <strong>${label}.</strong> ${escapeHTML(question.options[label])}
-          </li>
-        `).join("")}
-      </ul>
-      <div class="question-meta">
-        <span class="tag correct">Đáp án đúng: ${question.correctAnswer}</span>
+      <div>
+        <p class="eyebrow">Bài thi ${index + 1}</p>
+        <h3>${escapeHTML(exam.fileName)}</h3>
+        <div class="question-meta">
+          <span class="tag correct">${exam.questions.length} câu hợp lệ</span>
+          <span class="tag ${exam.errors.length > 0 ? "incorrect" : ""}">${exam.errors.length} lỗi</span>
+          <span class="tag">${formatDateTime(exam.importedAt)}</span>
+        </div>
+      </div>
+      <div class="exam-actions">
+        <button class="ghost-button" type="button" data-action="select">Chọn</button>
+        <button class="ghost-button danger-text" type="button" data-action="remove">Xóa</button>
       </div>
     `;
-    questionPreviewList.appendChild(card);
+
+    card.querySelector('[data-action="select"]').addEventListener("click", () => selectExam(exam.id));
+    card.querySelector('[data-action="remove"]').addEventListener("click", () => removeExam(exam.id));
+    examList.appendChild(card);
   });
+}
+
+function renderSelectedExamPreview() {
+  const exam = getSelectedExam();
+
+  if (!exam) {
+    clearSelectedExam();
+    return;
+  }
+
+  previewSection.classList.remove("hidden");
+  validCount.textContent = exam.questions.length;
+  errorCount.textContent = exam.errors.length;
+  questionPreviewList.innerHTML = "";
+
+  const overview = document.createElement("article");
+  overview.className = "question-card";
+  overview.innerHTML = `
+    <h3>${escapeHTML(exam.fileName)}</h3>
+    <p class="muted-text">File này đã được tạo thành một bài thi riêng. Bấm bắt đầu làm bài để dùng toàn bộ câu hỏi hợp lệ trong bài thi này.</p>
+    <div class="question-meta">
+      <span class="tag correct">${exam.questions.length} câu hợp lệ</span>
+      <span class="tag ${exam.errors.length > 0 ? "incorrect" : ""}">${exam.errors.length} lỗi định dạng</span>
+    </div>
+  `;
+  questionPreviewList.appendChild(overview);
+
+  if (exam.questions.length > 0) {
+    const details = document.createElement("details");
+    details.className = "question-preview-details";
+    details.innerHTML = `<summary>Xem danh sách câu hỏi trong bài thi</summary>`;
+    const detailsList = document.createElement("div");
+    detailsList.className = "question-list";
+
+    exam.questions.forEach((question, index) => {
+      const card = document.createElement("article");
+      card.className = "question-card";
+      card.innerHTML = `
+        <h3>Câu ${index + 1}. ${escapeHTML(question.text)}</h3>
+        <ul class="answer-list">
+          ${OPTION_LABELS.map((label) => `
+            <li class="answer-item ${label === question.correctAnswer ? "is-correct" : ""}">
+              <strong>${label}.</strong> ${escapeHTML(question.options[label])}
+            </li>
+          `).join("")}
+        </ul>
+        <div class="question-meta">
+          <span class="tag correct">Đáp án đúng: ${question.correctAnswer}</span>
+        </div>
+      `;
+      detailsList.appendChild(card);
+    });
+
+    details.appendChild(detailsList);
+    questionPreviewList.appendChild(details);
+  }
 
   renderImportErrors();
-  optionsSection.classList.toggle("hidden", importedQuestions.length === 0);
+  optionsSection.classList.toggle("hidden", exam.questions.length === 0);
   resultSection.classList.add("hidden");
   quizSection.classList.add("hidden");
   stopTimer();
