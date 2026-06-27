@@ -575,20 +575,19 @@ function renderQuizProgress() {
   quizProgressBody.innerHTML = "";
 
   activeQuizQuestions.forEach((question, index) => {
-    const row = document.createElement("tr");
-    row.dataset.questionId = question.id;
-    row.innerHTML = `
-      <td data-label="Câu"><strong>${index + 1}</strong></td>
-      <td data-label="Trạng thái"><span class="progress-status">Chưa trả lời</span></td>
-      <td data-label="Đã chọn"><span class="progress-answer">-</span></td>
-      <td data-label="Đi tới"><button class="ghost-button compact-button" type="button">Tới câu ${index + 1}</button></td>
-    `;
+    const button = document.createElement("button");
+    button.className = "progress-number is-unanswered";
+    button.type = "button";
+    button.dataset.questionId = question.id;
+    button.textContent = index + 1;
+    button.setAttribute("aria-label", `Tới câu ${index + 1}, chưa trả lời`);
+    button.title = `Câu ${index + 1}: chưa trả lời`;
 
-    row.querySelector("button").addEventListener("click", () => {
+    button.addEventListener("click", () => {
       document.getElementById(`quiz-question-${question.id}`).scrollIntoView({ behavior: "smooth", block: "start" });
     });
 
-    quizProgressBody.appendChild(row);
+    quizProgressBody.appendChild(button);
   });
 }
 
@@ -600,17 +599,21 @@ function updateQuizProgress() {
   unansweredCount.textContent = Math.max(0, activeQuizQuestions.length - answeredTotal);
 
   activeQuizQuestions.forEach((question) => {
-    const row = quizProgressBody.querySelector(`tr[data-question-id="${question.id}"]`);
+    const button = quizProgressBody.querySelector(`button[data-question-id="${question.id}"]`);
     const selectedAnswer = answers[question.id];
 
-    if (!row) {
+    if (!button) {
       return;
     }
 
-    row.classList.toggle("is-answered", Boolean(selectedAnswer));
-    row.classList.toggle("is-unanswered", !selectedAnswer);
-    row.querySelector(".progress-status").textContent = selectedAnswer ? "Đã trả lời" : "Chưa trả lời";
-    row.querySelector(".progress-answer").textContent = selectedAnswer || "-";
+    const questionIndex = activeQuizQuestions.indexOf(question) + 1;
+    button.classList.toggle("is-answered", Boolean(selectedAnswer));
+    button.classList.toggle("is-unanswered", !selectedAnswer);
+    button.setAttribute(
+      "aria-label",
+      selectedAnswer ? `Tới câu ${questionIndex}, đã chọn ${selectedAnswer}` : `Tới câu ${questionIndex}, chưa trả lời`
+    );
+    button.title = selectedAnswer ? `Câu ${questionIndex}: đã chọn ${selectedAnswer}` : `Câu ${questionIndex}: chưa trả lời`;
   });
 }
 
