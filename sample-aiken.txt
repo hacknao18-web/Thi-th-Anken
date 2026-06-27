@@ -1,0 +1,69 @@
+Thủ đô của Việt Nam là?
+A. Hà Nội
+B. Đà Nẵng
+C. TP. Hồ Chí Minh
+D. Cần Thơ
+ANSWER: A
+
+Hành tinh nào được gọi là hành tinh đỏ?
+A) Sao Kim
+B) Sao Hỏa
+C) Sao Mộc
+D) Sao Thổ
+ANSWER: B
+
+Kết quả của phép tính 8 x 7 là?
+A. 54
+B. 56
+C. 58
+D. 64
+ANSWER: B
+
+Ngôn ngữ nào chạy trực tiếp trong trình duyệt web?
+A. JavaScript
+B. SQL
+C. C
+D. Pascal
+ANSWER: A
+
+Đâu là đơn vị đo dung lượng dữ liệu?
+A. Mét
+B. Lít
+C. Byte
+D. Giây
+ANSWER: C
+
+Từ nào sau đây là danh từ?
+A. Chạy
+B. Đẹp
+C. Quyển sách
+D. Nhanh
+ANSWER: C
+
+Nước biển thường có vị gì?
+A. Ngọt
+B. Mặn
+C. Chua
+D. Đắng
+ANSWER: B
+
+Mặt trời mọc ở hướng nào?
+A. Đông
+B. Tây
+C. Nam
+D. Bắc
+ANSWER: A
+
+Trong hệ thập phân, chữ số lớn nhất là?
+A. 7
+B. 8
+C. 9
+D. 10
+ANSWER: C
+
+Cơ quan nào bơm máu đi khắp cơ thể?
+A. Phổi
+B. Gan
+C. Dạ dày
+D. Tim
+ANSWER: D

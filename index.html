@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Website thi trắc nghiệm từ file Aiken Moodle</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-content">
+      <div>
+        <p class="eyebrow">Thi trắc nghiệm offline</p>
+        <h1>Website thi trắc nghiệm từ file Aiken Moodle</h1>
+      </div>
+      <button id="scrollHistoryBtn" class="ghost-button" type="button">Lịch sử</button>
+    </div>
+  </header>
+
+  <main class="container main-layout">
+    <section class="panel upload-panel" aria-labelledby="uploadTitle">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Bước 1</p>
+          <h2 id="uploadTitle">Tải file câu hỏi</h2>
+        </div>
+        <span id="fileStatus" class="status-pill">Chưa có file</span>
+      </div>
+
+      <label class="upload-box" for="fileInput">
+        <span class="upload-icon">TXT</span>
+        <span class="upload-title">Chọn file .txt định dạng Aiken</span>
+        <span class="upload-note">File chỉ được đọc trên trình duyệt, không gửi lên server.</span>
+        <input id="fileInput" type="file" accept=".txt,text/plain">
+      </label>
+
+      <div id="messageBox" class="message hidden" role="status"></div>
+    </section>
+
+    <section id="previewSection" class="panel hidden" aria-labelledby="previewTitle">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Bước 2</p>
+          <h2 id="previewTitle">Xem trước câu hỏi</h2>
+        </div>
+        <div class="summary-grid compact">
+          <div>
+            <span id="validCount">0</span>
+            <small>Hợp lệ</small>
+          </div>
+          <div>
+            <span id="errorCount">0</span>
+            <small>Lỗi</small>
+          </div>
+        </div>
+      </div>
+
+      <div id="questionPreviewList" class="question-list"></div>
+
+      <details id="errorDetails" class="error-details hidden">
+        <summary>Danh sách câu hỏi lỗi</summary>
+        <div id="errorList"></div>
+      </details>
+    </section>
+
+    <section id="optionsSection" class="panel hidden" aria-labelledby="optionsTitle">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Bước 3</p>
+          <h2 id="optionsTitle">Tùy chọn bài thi</h2>
+        </div>
+      </div>
+
+      <div class="option-grid">
+        <label class="choice-card">
+          <input id="shuffleQuestions" type="checkbox">
+          <span>
+            <strong>Xáo trộn câu hỏi</strong>
+            <small>Thứ tự câu hỏi sẽ thay đổi khi bắt đầu làm bài.</small>
+          </span>
+        </label>
+
+        <label class="choice-card">
+          <input id="shuffleAnswers" type="checkbox">
+          <span>
+            <strong>Xáo trộn đáp án</strong>
+            <small>Các lựa chọn A, B, C, D sẽ được đảo trong từng câu.</small>
+          </span>
+        </label>
+
+        <label class="time-input">
+          <span>Thời gian làm bài (phút)</span>
+          <input id="timeLimit" type="number" min="1" max="300" placeholder="Không giới hạn">
+        </label>
+      </div>
+
+      <button id="startQuizBtn" class="primary-button" type="button">Bắt đầu làm bài</button>
+    </section>
+
+    <section id="quizSection" class="panel hidden" aria-labelledby="quizTitle">
+      <div class="quiz-topbar">
+        <div>
+          <p class="eyebrow">Bước 4</p>
+          <h2 id="quizTitle">Làm bài trắc nghiệm</h2>
+        </div>
+        <div id="timerBox" class="timer hidden" aria-live="polite">
+          <span id="timerText">00:00</span>
+          <small id="timerWarning"></small>
+        </div>
+      </div>
+
+      <div id="quizList" class="question-list"></div>
+
+      <button id="submitQuizBtn" class="primary-button danger" type="button">Nộp bài</button>
+    </section>
+
+    <section id="resultSection" class="panel hidden" aria-labelledby="resultTitle">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Kết quả</p>
+          <h2 id="resultTitle">Điểm bài làm</h2>
+        </div>
+        <div class="export-actions">
+          <button id="exportCsvBtn" class="ghost-button" type="button">Xuất CSV</button>
+          <button id="exportTxtBtn" class="ghost-button" type="button">Xuất TXT</button>
+        </div>
+      </div>
+
+      <div id="scoreSummary" class="summary-grid"></div>
+      <div id="resultList" class="question-list"></div>
+    </section>
+
+    <section id="historySection" class="panel" aria-labelledby="historyTitle">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">LocalStorage</p>
+          <h2 id="historyTitle">Lịch sử làm bài</h2>
+        </div>
+        <button id="clearHistoryBtn" class="ghost-button danger-text" type="button">Xóa lịch sử</button>
+      </div>
+
+      <div id="historyList" class="history-list"></div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
