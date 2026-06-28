@@ -17,6 +17,7 @@ const errorList = document.getElementById("errorList");
 const shuffleQuestionsInput = document.getElementById("shuffleQuestions");
 const shuffleAnswersInput = document.getElementById("shuffleAnswers");
 const timeLimitInput = document.getElementById("timeLimit");
+const questionLimitInput = document.getElementById("questionLimit");
 const availableFromInput = document.getElementById("availableFrom");
 const availableUntilInput = document.getElementById("availableUntil");
 const maxAttemptsInput = document.getElementById("maxAttempts");
@@ -707,7 +708,7 @@ scrollHistoryBtn.addEventListener("click", () => {
 teacherModeBtn.addEventListener("click", activateTeacherModeView);
 studentModeBtn.addEventListener("click", activateStudentModeHint);
 copyShareLinkBtn.addEventListener("click", copyShareLink);
-[shuffleQuestionsInput, shuffleAnswersInput, timeLimitInput, availableFromInput, availableUntilInput, maxAttemptsInput, showAnswersAfterSubmitInput, showScoreAfterSubmitInput, sendEmailResultInput, requireStudentEmailInput].forEach((input) => {
+[shuffleQuestionsInput, shuffleAnswersInput, timeLimitInput, questionLimitInput, availableFromInput, availableUntilInput, maxAttemptsInput, showAnswersAfterSubmitInput, showScoreAfterSubmitInput, sendEmailResultInput, requireStudentEmailInput].forEach((input) => {
   input.addEventListener("input", updateShareLink);
   input.addEventListener("change", updateShareLink);
 });
@@ -955,6 +956,7 @@ function getCurrentQuizSettings() {
     shuffleQuestions: shuffleQuestionsInput.checked,
     shuffleAnswers: shuffleAnswersInput.checked,
     timeLimit: timeLimitInput.value || "",
+    questionLimit: normalizeQuestionLimit(questionLimitInput.value),
     availableFrom: availableFromInput.value || "",
     availableUntil: availableUntilInput.value || "",
     maxAttempts: normalizeMaxAttempts(maxAttemptsInput.value),
@@ -969,6 +971,7 @@ function applyQuizSettings(settings = {}) {
   shuffleQuestionsInput.checked = Boolean(settings.shuffleQuestions);
   shuffleAnswersInput.checked = Boolean(settings.shuffleAnswers);
   timeLimitInput.value = settings.timeLimit || "";
+  questionLimitInput.value = settings.questionLimit || "";
   availableFromInput.value = settings.availableFrom || "";
   availableUntilInput.value = settings.availableUntil || "";
   maxAttemptsInput.value = normalizeMaxAttempts(settings.maxAttempts);
@@ -987,6 +990,16 @@ function normalizeMaxAttempts(value) {
   }
 
   return Math.min(20, Math.floor(parsed));
+}
+
+function normalizeQuestionLimit(value) {
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return "";
+  }
+
+  return Math.floor(parsed);
 }
 
 function updateStudentEmailFieldHint(settings) {
@@ -1151,6 +1164,9 @@ function updateShareLink() {
   const availableUntil = parseLocalDateTime(settings.availableUntil);
   if (availableFrom && availableUntil && availableFrom >= availableUntil) {
     warnings.push("Thời gian kết thúc đang sớm hơn hoặc bằng thời gian bắt đầu.");
+  }
+  if (settings.questionLimit && settings.questionLimit > exam.questions.length) {
+    warnings.push(`Số câu dùng để thi lớn hơn số câu hợp lệ; hệ thống sẽ dùng tối đa ${exam.questions.length} câu.`);
   }
   if (lastSavedExamId !== examId) {
     warnings.push("Đang lưu đề để học viên mở được link ngắn.");
@@ -1614,8 +1630,18 @@ function startQuiz() {
   currentStudentEmail = studentEmail;
   const shouldShuffleQuestions = settings.shuffleQuestions;
   const shouldShuffleAnswers = settings.shuffleAnswers;
+  const questionLimit = normalizeQuestionLimit(settings.questionLimit);
+  let selectedQuestions = [...importedQuestions];
 
-  activeQuizQuestions = importedQuestions.map((question) => {
+  if (shouldShuffleQuestions) {
+    selectedQuestions = shuffleArray(selectedQuestions);
+  }
+
+  if (questionLimit) {
+    selectedQuestions = selectedQuestions.slice(0, Math.min(questionLimit, selectedQuestions.length));
+  }
+
+  activeQuizQuestions = selectedQuestions.map((question) => {
     let options = OPTION_LABELS.map((label) => ({
       originalLabel: label,
       text: question.options[label]
@@ -1630,10 +1656,6 @@ function startQuiz() {
       displayOptions: options
     };
   });
-
-  if (shouldShuffleQuestions) {
-    activeQuizQuestions = shuffleArray(activeQuizQuestions);
-  }
 
   quizStartTime = new Date();
   latestResult = null;
