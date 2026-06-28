@@ -63,7 +63,7 @@ Thiết lập Web App nên là:
 Mở link Web App trên trình duyệt:
 
 ```text
-https://script.google.com/macros/s/AKfycbwKOLUE_b9qy7plLVKtdYJJgZNArROm7LFe_2nWJTVtNyzPnnfWd-vAFn2Sqh6U543aYg/exec
+https://script.google.com/macros/s/AKfycbwKUm1D585U-B8ERczQ28e1lDpk5UZKE0RJS0ddrckrhRL7mCsf5voE2UtUrzIvloinOw/exec
 ```
 
 Nếu cấu hình đúng, trang sẽ trả về nội dung có:

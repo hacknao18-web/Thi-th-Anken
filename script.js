@@ -42,7 +42,7 @@ const shareLinkStatus = document.getElementById("shareLinkStatus");
 
 const STORAGE_KEY = "aiken_quiz_history";
 const RESULT_ENDPOINT_KEY = "aiken_quiz_result_endpoint";
-const DEFAULT_RESULT_ENDPOINT = "https://script.google.com/macros/s/AKfycbwKOLUE_b9qy7plLVKtdYJJgZNArROm7LFe_2nWJTVtNyzPnnfWd-vAFn2Sqh6U543aYg/exec";
+const DEFAULT_RESULT_ENDPOINT = "https://script.google.com/macros/s/AKfycbwKUm1D585U-B8ERczQ28e1lDpk5UZKE0RJS0ddrckrhRL7mCsf5voE2UtUrzIvloinOw/exec";
 const OPTION_LABELS = ["A", "B", "C", "D"];
 const DEMO_EXAM_ID = "demo-exam";
 const DEMO_EXAM_CONTENT = `Theo Nghị quyết số 79, kinh tế nhà nước giữ vai trò như thế nào trong nền kinh tế thị trường định hướng xã hội chủ nghĩa?
