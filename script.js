@@ -219,7 +219,7 @@ function loadSharedExamFromURL() {
         showMessage("Đã tải đề thi. Hãy nhập tên trước khi làm bài.", "info");
       })
       .catch(() => {
-        showMessage("Không tải được đề thi. Vui lòng kiểm tra link hoặc xin lại link từ giảng viên.", "error");
+        showMessage("Không tải được đề thi. Có thể Apps Script chưa được Deploy bản mới hoặc đề chưa được lưu vào sheet DeThi.", "error");
       });
     return true;
   }
@@ -392,6 +392,10 @@ function scheduleSaveExamForSharing(payload) {
 
 async function saveExamForSharing(payload) {
   try {
+    if (shareLinkWarning) {
+      shareLinkWarning.textContent = "Đang lưu đề lên Google Sheet để tạo link ngắn...";
+    }
+
     await fetch(DEFAULT_RESULT_ENDPOINT, {
       method: "POST",
       mode: "no-cors",
@@ -401,16 +405,21 @@ async function saveExamForSharing(payload) {
       body: JSON.stringify(payload)
     });
 
+    await wait(900);
+    await fetchSharedExamById(payload.examId);
+
     lastSavedExamId = payload.examId;
     if (shareLinkWarning) {
       shareLinkWarning.textContent = window.location.protocol === "file:"
         ? "Đã lưu đề. Link ngắn chỉ dùng được cho học viên sau khi website được đưa lên hosting."
         : "Đã lưu đề. Học viên có thể mở link ngắn này để thi.";
     }
+    return true;
   } catch (error) {
     if (shareLinkWarning) {
-      shareLinkWarning.textContent = "Chưa lưu được đề lên Google Sheet. Vui lòng kiểm tra Apps Script hoặc kết nối mạng.";
+      shareLinkWarning.textContent = "Chưa lưu được đề hoặc Apps Script chưa triển khai bản mới. Vui lòng cập nhật Apps Script rồi Deploy > New version.";
     }
+    return false;
   }
 }
 
@@ -425,7 +434,12 @@ async function copyShareLink() {
   try {
     if (latestSharePayload) {
       window.clearTimeout(saveExamTimerId);
-      await saveExamForSharing(latestSharePayload);
+      const saved = await saveExamForSharing(latestSharePayload);
+
+      if (!saved) {
+        showMessage("Chưa thể sao chép link vì đề chưa lưu thành công lên Google Sheet.", "warning");
+        return;
+      }
     }
 
     if (navigator.clipboard && window.isSecureContext) {
@@ -443,6 +457,10 @@ async function copyShareLink() {
     shareQuizLink.select();
     showMessage("Không sao chép tự động được. Bạn có thể bôi đen và sao chép link trong ô.", "warning");
   }
+}
+
+function wait(milliseconds) {
+  return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 }
 
 async function handleExamFileUpload(event) {
