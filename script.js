@@ -37,6 +37,9 @@ const exportCsvBtn = document.getElementById("exportCsvBtn");
 const exportAntiCheatCsvBtn = document.getElementById("exportAntiCheatCsvBtn");
 const exportTxtBtn = document.getElementById("exportTxtBtn");
 const scrollHistoryBtn = document.getElementById("scrollHistoryBtn");
+const teacherModeBtn = document.getElementById("teacherModeBtn");
+const studentModeBtn = document.getElementById("studentModeBtn");
+const pageTitle = document.getElementById("pageTitle");
 const copyShareLinkBtn = document.getElementById("copyShareLinkBtn");
 const shareQuizLink = document.getElementById("shareQuizLink");
 const shareLinkWarning = document.getElementById("shareLinkWarning");
@@ -687,6 +690,8 @@ exportTxtBtn.addEventListener("click", exportResultTXT);
 scrollHistoryBtn.addEventListener("click", () => {
   document.getElementById("historySection").scrollIntoView({ behavior: "smooth" });
 });
+teacherModeBtn.addEventListener("click", activateTeacherModeView);
+studentModeBtn.addEventListener("click", activateStudentModeHint);
 copyShareLinkBtn.addEventListener("click", copyShareLink);
 [shuffleQuestionsInput, shuffleAnswersInput, timeLimitInput].forEach((input) => {
   input.addEventListener("input", updateShareLink);
@@ -695,6 +700,7 @@ copyShareLinkBtn.addEventListener("click", copyShareLink);
 resultEndpointInput.value = DEFAULT_RESULT_ENDPOINT;
 localStorage.setItem(RESULT_ENDPOINT_KEY, DEFAULT_RESULT_ENDPOINT);
 initAntiCheatMonitor();
+updateModeButtons("teacher");
 
 if (!loadSharedExamFromURL()) {
   addDemoExam(true);
@@ -834,8 +840,13 @@ function fetchSharedExamById(examId) {
 
 function applyStudentMode() {
   isStudentMode = true;
+  document.body.classList.remove("teacher-mode");
   document.body.classList.add("student-mode");
   document.title = "Làm bài thi trắc nghiệm";
+  if (pageTitle) {
+    pageTitle.textContent = "Làm bài thi trắc nghiệm";
+  }
+  updateModeButtons("student");
 
   const optionsTitle = document.getElementById("optionsTitle");
   const quizTitle = document.getElementById("quizTitle");
@@ -865,6 +876,63 @@ function applyStudentMode() {
   scrollHistoryBtn.classList.add("hidden");
   startQuizBtn.textContent = "Bắt đầu làm bài";
   showMessage("Bạn đang mở link bài thi do giảng viên tạo. Hãy nhập tên trước khi làm bài.", "info");
+}
+
+function activateTeacherModeView() {
+  if (isStudentMode) {
+    showMessage("Bạn đang ở link làm bài của học viên. Muốn tạo đề, hãy mở trang website không kèm mã đề ở cuối link.", "warning");
+    return;
+  }
+
+  document.body.classList.add("teacher-mode");
+  document.body.classList.remove("student-mode");
+  document.title = "Website thi trắc nghiệm từ file Aiken Moodle";
+  if (pageTitle) {
+    pageTitle.textContent = "Thi trắc nghiệm từ file Aiken Moodle";
+  }
+  const optionsTitle = document.getElementById("optionsTitle");
+  const quizTitle = document.getElementById("quizTitle");
+  if (optionsTitle) {
+    optionsTitle.textContent = "Cấu hình và làm thử";
+  }
+  if (quizTitle) {
+    quizTitle.textContent = "Làm thử bài thi";
+  }
+  startQuizBtn.textContent = "Làm thử đề này";
+  updateModeButtons("teacher");
+  document.querySelector(".upload-panel").scrollIntoView({ behavior: "smooth" });
+  showMessage("Đang ở chế độ giáo viên tạo đề.", "info");
+}
+
+function activateStudentModeHint() {
+  updateModeButtons(isStudentMode ? "student" : "teacher");
+
+  if (isStudentMode) {
+    optionsSection.scrollIntoView({ behavior: "smooth" });
+    showMessage("Đang ở chế độ học viên làm bài.", "info");
+    return;
+  }
+
+  if (shareSection && !shareSection.classList.contains("hidden")) {
+    shareSection.scrollIntoView({ behavior: "smooth" });
+    showMessage("Sao chép link trong khung Link học viên để gửi cho người làm bài.", "info");
+    return;
+  }
+
+  optionsSection.scrollIntoView({ behavior: "smooth" });
+  showMessage("Hãy chọn hoặc tải đề trước, sau đó dùng link học viên được tạo tự động.", "warning");
+}
+
+function updateModeButtons(activeMode) {
+  if (!teacherModeBtn || !studentModeBtn) {
+    return;
+  }
+
+  const isTeacherActive = activeMode === "teacher";
+  teacherModeBtn.classList.toggle("active", isTeacherActive);
+  studentModeBtn.classList.toggle("active", !isTeacherActive);
+  teacherModeBtn.setAttribute("aria-pressed", String(isTeacherActive));
+  studentModeBtn.setAttribute("aria-pressed", String(!isTeacherActive));
 }
 
 function updateShareLink() {

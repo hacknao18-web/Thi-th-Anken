@@ -7,19 +7,25 @@
   <title>Website thi trắc nghiệm từ file Aiken Moodle</title>
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="teacher-mode">
   <header class="site-header">
     <div class="container header-content">
       <div>
         <p class="eyebrow">Thi trắc nghiệm offline</p>
-        <h1>Thi trắc nghiệm từ file Aiken Moodle</h1>
+        <h1 id="pageTitle">Thi trắc nghiệm từ file Aiken Moodle</h1>
       </div>
-      <button id="scrollHistoryBtn" class="ghost-button" type="button">Lịch sử</button>
+      <div class="header-actions">
+        <div class="mode-switch" aria-label="Chọn chế độ sử dụng">
+          <button id="teacherModeBtn" class="mode-button active" type="button">Giáo viên</button>
+          <button id="studentModeBtn" class="mode-button" type="button">Học viên</button>
+        </div>
+        <button id="scrollHistoryBtn" class="ghost-button" type="button">Lịch sử</button>
+      </div>
     </div>
   </header>
 
   <main class="container main-layout">
-    <section class="panel upload-panel" aria-labelledby="uploadTitle">
+    <section class="panel upload-panel teacher-panel" aria-labelledby="uploadTitle">
       <div class="section-heading">
         <div>
           <p class="eyebrow">Bước 1</p>
@@ -42,7 +48,7 @@
       <div id="messageBox" class="message hidden" role="status"></div>
     </section>
 
-    <section id="examSection" class="panel hidden" aria-labelledby="examTitle">
+    <section id="examSection" class="panel teacher-panel hidden" aria-labelledby="examTitle">
       <div class="section-heading">
         <div>
           <p class="eyebrow">Bước 2</p>
@@ -53,7 +59,7 @@
       <div id="examList" class="exam-list"></div>
     </section>
 
-    <section id="previewSection" class="panel hidden" aria-labelledby="previewTitle">
+    <section id="previewSection" class="panel teacher-panel hidden" aria-labelledby="previewTitle">
       <div class="section-heading">
         <div>
           <p class="eyebrow">Bước 3</p>
@@ -83,7 +89,7 @@
       <div class="section-heading">
         <div>
           <p class="eyebrow">Bước 4</p>
-          <h2 id="optionsTitle">Tùy chọn bài thi</h2>
+          <h2 id="optionsTitle">Cấu hình và làm thử</h2>
         </div>
       </div>
 
@@ -100,7 +106,7 @@
           <small>Kết quả sẽ được gửi về email này sau khi nộp bài.</small>
         </label>
 
-        <label class="choice-card">
+        <label class="choice-card teacher-option">
           <input id="shuffleQuestions" type="checkbox">
           <span>
             <strong>Xáo trộn câu hỏi</strong>
@@ -108,7 +114,7 @@
           </span>
         </label>
 
-        <label class="choice-card">
+        <label class="choice-card teacher-option">
           <input id="shuffleAnswers" type="checkbox">
           <span>
             <strong>Xáo trộn đáp án</strong>
@@ -116,20 +122,20 @@
           </span>
         </label>
 
-        <label class="time-input">
+        <label class="time-input teacher-option">
           <span>Thời gian làm bài (phút)</span>
           <input id="timeLimit" type="number" min="1" max="300" placeholder="Không giới hạn">
         </label>
 
         <input id="resultEndpoint" type="hidden" value="https://script.google.com/macros/s/AKfycbzrOvHXakaXWSbsOQx1_4oryPLfgL5X-SaUJXUlAHYuhBsMKzWQsqc2AnzoqxQCDxBVXQ/exec">
 
-        <div class="time-input wide-field">
+        <div class="time-input wide-field teacher-option">
           <span>Tự động gửi kết quả</span>
           <small>Khi nộp bài, kết quả sẽ tự gửi lên Google Sheet của giáo viên.</small>
         </div>
       </div>
 
-      <div id="shareSection" class="share-panel hidden" aria-labelledby="shareTitle">
+      <div id="shareSection" class="share-panel teacher-panel hidden" aria-labelledby="shareTitle">
         <div class="share-panel-heading">
           <div>
             <p class="eyebrow">Link học viên</p>
@@ -146,14 +152,14 @@
         </div>
       </div>
 
-      <button id="startQuizBtn" class="primary-button" type="button">Bắt đầu làm bài</button>
+      <button id="startQuizBtn" class="primary-button" type="button">Làm thử đề này</button>
     </section>
 
     <section id="quizSection" class="panel hidden" aria-labelledby="quizTitle">
       <div class="quiz-topbar">
         <div>
           <p class="eyebrow">Bước 5</p>
-          <h2 id="quizTitle">Làm bài trắc nghiệm</h2>
+          <h2 id="quizTitle">Làm thử bài thi</h2>
         </div>
         <div id="timerBox" class="timer hidden" aria-live="polite">
           <span id="timerText">00:00</span>
@@ -206,7 +212,7 @@
       <div id="resultList" class="question-list"></div>
     </section>
 
-    <section id="historySection" class="panel" aria-labelledby="historyTitle">
+    <section id="historySection" class="panel teacher-panel" aria-labelledby="historyTitle">
       <div class="section-heading">
         <div>
           <p class="eyebrow">LocalStorage</p>
