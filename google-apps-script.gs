@@ -224,6 +224,12 @@ function saveQuizResult(payload) {
 }
 
 function sendResultEmail(payload, submissionId) {
+  const settings = payload.settings || {};
+
+  if (payload.sendEmailResult === false || settings.sendEmailResult === false) {
+    return "Giao vien da tat gui email ket qua.";
+  }
+
   const email = normalizeEmail(payload.studentEmail);
 
   if (!isValidEmail(email)) {
@@ -246,15 +252,20 @@ function sendResultEmail(payload, submissionId) {
 }
 
 function buildResultEmailBody(payload, submissionId) {
+  const settings = payload.settings || {};
+  const canShowScore = settings.showScoreAfterSubmit !== false;
+  const canShowAnswers = settings.showAnswersAfterSubmit !== false;
   const details = Array.isArray(payload.details) ? payload.details : [];
-  const detailLines = details.map(function(detail, index) {
-    return [
-      "Cau " + (index + 1) + ": " + (detail.questionText || ""),
-      "Da chon: " + (detail.selectedAnswer || "Chua chon"),
-      "Dap an dung: " + (detail.correctAnswer || ""),
-      "Ket qua: " + (detail.isCorrect ? "Dung" : "Sai")
-    ].join("\n");
-  }).join("\n\n");
+  const detailLines = canShowAnswers
+    ? details.map(function(detail, index) {
+        return [
+          "Cau " + (index + 1) + ": " + (detail.questionText || ""),
+          "Da chon: " + (detail.selectedAnswer || "Chua chon"),
+          "Dap an dung: " + (detail.correctAnswer || ""),
+          "Ket qua: " + (detail.isCorrect ? "Dung" : "Sai")
+        ].join("\n");
+      }).join("\n\n")
+    : "Giao vien chua bat che do xem dap an sau khi nop.";
 
   const body = [
     "Xin chao " + (payload.studentName || "hoc vien") + ",",
@@ -268,10 +279,10 @@ function buildResultEmailBody(payload, submissionId) {
     "Bat dau luc: " + formatDateTimeForEmail(payload.startedAt),
     "Nop luc: " + formatDateTimeForEmail(payload.submittedAt),
     "Tong so cau: " + (payload.total || 0),
-    "So cau dung: " + (payload.correct || 0),
-    "So cau sai: " + (payload.wrong || 0),
-    "Diem: " + (payload.score || 0) + "/10",
-    "Ty le dung: " + (payload.percent || 0) + "%",
+    "So cau dung: " + (canShowScore ? payload.correct || 0 : "Cho cong bo"),
+    "So cau sai: " + (canShowScore ? payload.wrong || 0 : "Cho cong bo"),
+    "Diem: " + (canShowScore ? (payload.score || 0) + "/10" : "Cho cong bo"),
+    "Ty le dung: " + (canShowScore ? (payload.percent || 0) + "%" : "Cho cong bo"),
     "",
     "Chi tiet cau hoi:",
     detailLines || "Khong co chi tiet cau hoi.",

@@ -127,7 +127,57 @@
           <input id="timeLimit" type="number" min="1" max="300" placeholder="Không giới hạn">
         </label>
 
-        <input id="resultEndpoint" type="hidden" value="https://script.google.com/macros/s/AKfycbzrOvHXakaXWSbsOQx1_4oryPLfgL5X-SaUJXUlAHYuhBsMKzWQsqc2AnzoqxQCDxBVXQ/exec">
+        <label class="time-input teacher-option">
+          <span>Bắt đầu nhận bài</span>
+          <input id="availableFrom" type="datetime-local">
+          <small>Để trống nếu cho làm bài ngay.</small>
+        </label>
+
+        <label class="time-input teacher-option">
+          <span>Kết thúc nhận bài</span>
+          <input id="availableUntil" type="datetime-local">
+          <small>Để trống nếu không giới hạn hạn cuối.</small>
+        </label>
+
+        <label class="time-input teacher-option">
+          <span>Số lần làm tối đa</span>
+          <input id="maxAttempts" type="number" min="1" max="20" value="1">
+          <small>Tính theo email học viên trên cùng trình duyệt.</small>
+        </label>
+
+        <label class="choice-card teacher-option">
+          <input id="showAnswersAfterSubmit" type="checkbox" checked>
+          <span>
+            <strong>Cho xem đáp án sau khi nộp</strong>
+            <small>Ẩn nếu chỉ muốn học viên biết đã nộp bài.</small>
+          </span>
+        </label>
+
+        <label class="choice-card teacher-option">
+          <input id="showScoreAfterSubmit" type="checkbox" checked>
+          <span>
+            <strong>Hiện điểm ngay sau khi nộp</strong>
+            <small>Tắt nếu giáo viên muốn công bố điểm sau.</small>
+          </span>
+        </label>
+
+        <label class="choice-card teacher-option">
+          <input id="sendEmailResult" type="checkbox" checked>
+          <span>
+            <strong>Gửi email kết quả</strong>
+            <small>Kết quả sẽ gửi về email học viên nếu Apps Script đã cấp quyền gửi mail.</small>
+          </span>
+        </label>
+
+        <label class="choice-card teacher-option">
+          <input id="requireStudentEmail" type="checkbox" checked>
+          <span>
+            <strong>Bắt buộc nhập email</strong>
+            <small>Nên bật nếu cần giới hạn số lần làm hoặc gửi kết quả.</small>
+          </span>
+        </label>
+
+        <input id="resultEndpoint" type="hidden" value="https://script.google.com/macros/s/AKfycbwKaUCPkVuc_1uag1di0_8doeGFaPfBUk1nREaR75kJ4CpB3S22JI0wbdXdgdnCd2h0MA/exec">
 
         <div class="time-input wide-field teacher-option">
           <span>Tự động gửi kết quả</span>

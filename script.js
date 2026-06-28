@@ -17,6 +17,13 @@ const errorList = document.getElementById("errorList");
 const shuffleQuestionsInput = document.getElementById("shuffleQuestions");
 const shuffleAnswersInput = document.getElementById("shuffleAnswers");
 const timeLimitInput = document.getElementById("timeLimit");
+const availableFromInput = document.getElementById("availableFrom");
+const availableUntilInput = document.getElementById("availableUntil");
+const maxAttemptsInput = document.getElementById("maxAttempts");
+const showAnswersAfterSubmitInput = document.getElementById("showAnswersAfterSubmit");
+const showScoreAfterSubmitInput = document.getElementById("showScoreAfterSubmit");
+const sendEmailResultInput = document.getElementById("sendEmailResult");
+const requireStudentEmailInput = document.getElementById("requireStudentEmail");
 const studentNameInput = document.getElementById("studentName");
 const studentEmailInput = document.getElementById("studentEmail");
 const resultEndpointInput = document.getElementById("resultEndpoint");
@@ -53,9 +60,10 @@ const antiCheatPopupMessage = document.getElementById("antiCheatPopupMessage");
 const antiCheatPopupClose = document.getElementById("antiCheatPopupClose");
 
 const STORAGE_KEY = "aiken_quiz_history";
+const ATTEMPT_STORAGE_KEY = "aiken_quiz_attempts";
 const RESULT_ENDPOINT_KEY = "aiken_quiz_result_endpoint";
 const ANTI_CHEAT_SESSION_KEY = "aiken_quiz_anti_cheat_session";
-const DEFAULT_RESULT_ENDPOINT = "https://script.google.com/macros/s/AKfycbzrOvHXakaXWSbsOQx1_4oryPLfgL5X-SaUJXUlAHYuhBsMKzWQsqc2AnzoqxQCDxBVXQ/exec";
+const DEFAULT_RESULT_ENDPOINT = "https://script.google.com/macros/s/AKfycbwKaUCPkVuc_1uag1di0_8doeGFaPfBUk1nREaR75kJ4CpB3S22JI0wbdXdgdnCd2h0MA/exec";
 const OPTION_LABELS = ["A", "B", "C", "D"];
 const DEMO_EXAM_ID = "demo-exam";
 const CHEAT_EVENT_TYPES = Object.freeze({
@@ -167,6 +175,7 @@ let currentStudentEmail = "";
 let isSubmitting = false;
 let isStudentMode = false;
 let sharedQuizConfig = null;
+let currentSharedExamId = "";
 let lastSavedExamId = "";
 let saveExamTimerId = null;
 let latestSharePayload = null;
@@ -410,6 +419,7 @@ const AntiCheatMonitor = (() => {
       startedAt: quizStartTime ? quizStartTime.toISOString() : "",
       remainingSeconds,
       timeLimit: timeLimitInput.value || "",
+      settings: getCurrentQuizSettings(),
       activeQuizQuestions,
       answers: collectAnswersSafely(),
       antiCheat: {
@@ -484,6 +494,10 @@ const AntiCheatMonitor = (() => {
     currentFileName = saved.currentFileName || "Bài làm đã khôi phục";
     quizStartTime = saved.startedAt ? new Date(saved.startedAt) : new Date();
     activeQuizQuestions = Array.isArray(saved.activeQuizQuestions) ? saved.activeQuizQuestions : [];
+
+    if (saved.settings) {
+      applyQuizSettings(saved.settings);
+    }
 
     if (saved.timeLimit) {
       timeLimitInput.value = saved.timeLimit;
@@ -693,7 +707,7 @@ scrollHistoryBtn.addEventListener("click", () => {
 teacherModeBtn.addEventListener("click", activateTeacherModeView);
 studentModeBtn.addEventListener("click", activateStudentModeHint);
 copyShareLinkBtn.addEventListener("click", copyShareLink);
-[shuffleQuestionsInput, shuffleAnswersInput, timeLimitInput].forEach((input) => {
+[shuffleQuestionsInput, shuffleAnswersInput, timeLimitInput, availableFromInput, availableUntilInput, maxAttemptsInput, showAnswersAfterSubmitInput, showScoreAfterSubmitInput, sendEmailResultInput, requireStudentEmailInput].forEach((input) => {
   input.addEventListener("input", updateShareLink);
   input.addEventListener("change", updateShareLink);
 });
@@ -701,6 +715,7 @@ resultEndpointInput.value = DEFAULT_RESULT_ENDPOINT;
 localStorage.setItem(RESULT_ENDPOINT_KEY, DEFAULT_RESULT_ENDPOINT);
 initAntiCheatMonitor();
 updateModeButtons("teacher");
+updateStudentEmailFieldHint(getCurrentQuizSettings());
 
 if (!loadSharedExamFromURL()) {
   addDemoExam(true);
@@ -794,9 +809,9 @@ function importSharedExamPayload(payload) {
   }
 
   sharedQuizConfig = payload.settings || {};
-  shuffleQuestionsInput.checked = Boolean(sharedQuizConfig.shuffleQuestions);
-  shuffleAnswersInput.checked = Boolean(sharedQuizConfig.shuffleAnswers);
-  timeLimitInput.value = sharedQuizConfig.timeLimit || "";
+  currentSharedExamId = payload.examId || "";
+  latestSharePayload = payload;
+  applyQuizSettings(sharedQuizConfig);
 
   const sharedExam = {
     id: "shared-exam",
@@ -935,7 +950,165 @@ function updateModeButtons(activeMode) {
   studentModeBtn.setAttribute("aria-pressed", String(!isTeacherActive));
 }
 
+function getCurrentQuizSettings() {
+  return {
+    shuffleQuestions: shuffleQuestionsInput.checked,
+    shuffleAnswers: shuffleAnswersInput.checked,
+    timeLimit: timeLimitInput.value || "",
+    availableFrom: availableFromInput.value || "",
+    availableUntil: availableUntilInput.value || "",
+    maxAttempts: normalizeMaxAttempts(maxAttemptsInput.value),
+    showAnswersAfterSubmit: showAnswersAfterSubmitInput.checked,
+    showScoreAfterSubmit: showScoreAfterSubmitInput.checked,
+    sendEmailResult: sendEmailResultInput.checked,
+    requireStudentEmail: requireStudentEmailInput.checked
+  };
+}
+
+function applyQuizSettings(settings = {}) {
+  shuffleQuestionsInput.checked = Boolean(settings.shuffleQuestions);
+  shuffleAnswersInput.checked = Boolean(settings.shuffleAnswers);
+  timeLimitInput.value = settings.timeLimit || "";
+  availableFromInput.value = settings.availableFrom || "";
+  availableUntilInput.value = settings.availableUntil || "";
+  maxAttemptsInput.value = normalizeMaxAttempts(settings.maxAttempts);
+  showAnswersAfterSubmitInput.checked = settings.showAnswersAfterSubmit !== false;
+  showScoreAfterSubmitInput.checked = settings.showScoreAfterSubmit !== false;
+  sendEmailResultInput.checked = settings.sendEmailResult !== false;
+  requireStudentEmailInput.checked = settings.requireStudentEmail !== false;
+  updateStudentEmailFieldHint(getCurrentQuizSettings());
+}
+
+function normalizeMaxAttempts(value) {
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return 1;
+  }
+
+  return Math.min(20, Math.floor(parsed));
+}
+
+function updateStudentEmailFieldHint(settings) {
+  const hint = document.querySelector("#studentEmailField small");
+
+  if (!hint) {
+    return;
+  }
+
+  if (settings.requireStudentEmail) {
+    hint.textContent = settings.sendEmailResult
+      ? "Bắt buộc nhập để nhận kết quả và kiểm soát số lần làm bài."
+      : "Bắt buộc nhập để kiểm soát số lần làm bài.";
+    return;
+  }
+
+  hint.textContent = settings.sendEmailResult
+    ? "Có thể nhập nếu muốn nhận kết quả qua email."
+    : "Không bắt buộc nhập email cho bài thi này.";
+}
+
+function getAvailabilityStatus(settings) {
+  const now = new Date();
+  const availableFrom = parseLocalDateTime(settings.availableFrom);
+  const availableUntil = parseLocalDateTime(settings.availableUntil);
+
+  if (availableFrom && availableUntil && availableFrom >= availableUntil) {
+    return {
+      allowed: false,
+      message: "Bài thi đang cấu hình sai thời gian: thời gian kết thúc phải sau thời gian bắt đầu."
+    };
+  }
+
+  if (availableFrom && now < availableFrom) {
+    return {
+      allowed: false,
+      message: `Bài thi chưa mở. Thời gian bắt đầu: ${formatDateTime(availableFrom.toISOString())}.`
+    };
+  }
+
+  if (availableUntil && now > availableUntil) {
+    return {
+      allowed: false,
+      message: `Bài thi đã kết thúc lúc ${formatDateTime(availableUntil.toISOString())}.`
+    };
+  }
+
+  return {
+    allowed: true,
+    message: ""
+  };
+}
+
+function parseLocalDateTime(value) {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getSelectedExamIdForAttempt() {
+  const exam = getSelectedExam();
+  return isStudentMode && currentSharedExamId
+    ? currentSharedExamId
+    : (exam ? exam.id : currentFileName || "unknown-exam");
+}
+
+function getAttemptKey(examId, learnerId) {
+  return `${examId}::${normalizeAttemptLearnerId(learnerId)}`;
+}
+
+function normalizeAttemptLearnerId(value) {
+  return String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function getAttemptStore() {
+  try {
+    const raw = localStorage.getItem(ATTEMPT_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch (error) {
+    return {};
+  }
+}
+
+function getAttemptStatus(examId, learnerId, maxAttempts) {
+  const safeMaxAttempts = normalizeMaxAttempts(maxAttempts);
+  const attempts = getAttemptStore();
+  const key = getAttemptKey(examId, learnerId);
+  const used = Number(attempts[key] && attempts[key].count) || 0;
+
+  if (used >= safeMaxAttempts) {
+    return {
+      allowed: false,
+      message: `Bạn đã dùng hết ${safeMaxAttempts} lần làm bài cho đề này.`
+    };
+  }
+
+  return {
+    allowed: true,
+    used,
+    remaining: safeMaxAttempts - used
+  };
+}
+
+function recordAttempt(examId, learnerId) {
+  const attempts = getAttemptStore();
+  const key = getAttemptKey(examId, learnerId);
+  const current = attempts[key] || { count: 0 };
+
+  attempts[key] = {
+    count: (Number(current.count) || 0) + 1,
+    lastSubmittedAt: new Date().toISOString()
+  };
+
+  localStorage.setItem(ATTEMPT_STORAGE_KEY, JSON.stringify(attempts));
+}
+
 function updateShareLink() {
+  updateStudentEmailFieldHint(getCurrentQuizSettings());
+
   if (!shareQuizLink || isStudentMode) {
     return;
   }
@@ -953,11 +1126,7 @@ function updateShareLink() {
     version: 1,
     fileName: exam.fileName,
     createdAt: new Date().toISOString(),
-    settings: {
-      shuffleQuestions: shuffleQuestionsInput.checked,
-      shuffleAnswers: shuffleAnswersInput.checked,
-      timeLimit: timeLimitInput.value || ""
-    },
+    settings: getCurrentQuizSettings(),
     questions: exam.questions.map((question) => ({
       text: question.text,
       options: question.options,
@@ -976,6 +1145,12 @@ function updateShareLink() {
   const warnings = [];
   if (window.location.protocol === "file:") {
     warnings.push("Bạn đang mở file trên máy. Muốn học viên dùng được link, hãy đưa website lên hosting trước.");
+  }
+  const settings = payload.settings || {};
+  const availableFrom = parseLocalDateTime(settings.availableFrom);
+  const availableUntil = parseLocalDateTime(settings.availableUntil);
+  if (availableFrom && availableUntil && availableFrom >= availableUntil) {
+    warnings.push("Thời gian kết thúc đang sớm hơn hoặc bằng thời gian bắt đầu.");
   }
   if (lastSavedExamId !== examId) {
     warnings.push("Đang lưu đề để học viên mở được link ngắn.");
@@ -1397,6 +1572,14 @@ function startQuiz() {
     return;
   }
 
+  const settings = getCurrentQuizSettings();
+  const availability = isStudentMode ? getAvailabilityStatus(settings) : { allowed: true };
+
+  if (!availability.allowed) {
+    showMessage(availability.message, "error");
+    return;
+  }
+
   const studentName = studentNameInput.value.trim().replace(/\s+/g, " ");
   const studentEmail = normalizeEmail(studentEmailInput.value);
 
@@ -1406,16 +1589,31 @@ function startQuiz() {
     return;
   }
 
-  if (!studentEmail || !isValidEmail(studentEmail)) {
+  if (settings.requireStudentEmail && (!studentEmail || !isValidEmail(studentEmail))) {
     showMessage("Vui lòng nhập email hợp lệ để nhận kết quả sau khi nộp bài.", "error");
     studentEmailInput.focus();
     return;
   }
 
+  if (studentEmail && !isValidEmail(studentEmail)) {
+    showMessage("Email chưa đúng định dạng. Vui lòng kiểm tra lại hoặc để trống nếu giáo viên không bắt buộc email.", "error");
+    studentEmailInput.focus();
+    return;
+  }
+
+  const attemptStatus = isStudentMode
+    ? getAttemptStatus(getSelectedExamIdForAttempt(), studentEmail || studentName, settings.maxAttempts)
+    : { allowed: true };
+
+  if (!attemptStatus.allowed) {
+    showMessage(attemptStatus.message, "error");
+    return;
+  }
+
   currentStudentName = studentName;
   currentStudentEmail = studentEmail;
-  const shouldShuffleQuestions = shuffleQuestionsInput.checked;
-  const shouldShuffleAnswers = shuffleAnswersInput.checked;
+  const shouldShuffleQuestions = settings.shuffleQuestions;
+  const shouldShuffleAnswers = settings.shuffleAnswers;
 
   activeQuizQuestions = importedQuestions.map((question) => {
     let options = OPTION_LABELS.map((label) => ({
@@ -1601,6 +1799,9 @@ async function submitQuiz(autoSubmit) {
   renderResult();
   showMessage(autoSubmit ? "Đã hết giờ, hệ thống đã tự động nộp bài." : "Đã nộp bài và chấm điểm.", "info");
   await sendResultToWeb(latestResult);
+  if (isStudentMode) {
+    recordAttempt(latestResult.examId, latestResult.studentEmail || latestResult.studentName);
+  }
   saveHistory(latestResult);
   renderResult();
   renderHistory();
@@ -1644,6 +1845,7 @@ function calculateScore(answers) {
   return {
     studentName: currentStudentName || studentNameInput.value.trim() || "Chưa nhập tên",
     studentEmail: currentStudentEmail || normalizeEmail(studentEmailInput.value),
+    examId: getSelectedExamIdForAttempt(),
     fileName: currentFileName || "Không rõ tên file",
     submittedAt: new Date().toISOString(),
     startedAt: quizStartTime ? quizStartTime.toISOString() : new Date().toISOString(),
@@ -1653,6 +1855,7 @@ function calculateScore(answers) {
     score,
     percent,
     details,
+    settings: getCurrentQuizSettings(),
     antiCheatSummary,
     antiCheatLog
   };
@@ -1678,6 +1881,7 @@ async function sendResultToWeb(result) {
       body: JSON.stringify({
         studentName: result.studentName,
         studentEmail: result.studentEmail,
+        examId: result.examId,
         fileName: result.fileName,
         submittedAt: result.submittedAt,
         startedAt: result.startedAt,
@@ -1686,14 +1890,21 @@ async function sendResultToWeb(result) {
         wrong: result.wrong,
         score: result.score,
         percent: result.percent,
+        settings: result.settings,
+        sendEmailResult: result.settings ? result.settings.sendEmailResult !== false : true,
         details: result.details,
         antiCheatSummary: result.antiCheatSummary,
         antiCheatLog: result.antiCheatLog
       })
     });
 
-    result.uploadStatus = "Đã gửi yêu cầu lưu kết quả lên web và email";
-    showMessage("Đã nộp bài, chấm điểm, gửi kết quả lên web và email đã nhập.", "info");
+    if (result.settings && result.settings.sendEmailResult === false) {
+      result.uploadStatus = "Đã gửi yêu cầu lưu kết quả lên web";
+      showMessage("Đã nộp bài và gửi kết quả lên web. Giáo viên đã tắt gửi email kết quả.", "info");
+    } else {
+      result.uploadStatus = "Đã gửi yêu cầu lưu kết quả lên web và email";
+      showMessage("Đã nộp bài, gửi kết quả lên web và email đã nhập.", "info");
+    }
   } catch (error) {
     result.uploadStatus = "Chưa gửi được kết quả lên web";
     showMessage("Đã nộp bài và lưu lịch sử trên máy, nhưng chưa gửi được kết quả lên web. Vui lòng kiểm tra URL hoặc kết nối mạng.", "warning");
@@ -1707,19 +1918,28 @@ function renderResult() {
 
   resultSection.classList.remove("hidden");
   const antiCheatSummaryData = latestResult.antiCheatSummary || {};
+  const settings = latestResult.settings || getCurrentQuizSettings();
+  const canShowScore = settings.showScoreAfterSubmit !== false;
   scoreSummary.innerHTML = `
     <div class="text-value"><span>${escapeHTML(latestResult.studentName)}</span><small>Người thi</small></div>
     <div class="text-value"><span>${escapeHTML(latestResult.studentEmail || "Chưa có email")}</span><small>Email nhận kết quả</small></div>
     <div><span>${latestResult.total}</span><small>Tổng số câu</small></div>
-    <div><span>${latestResult.correct}</span><small>Số câu đúng</small></div>
-    <div><span>${latestResult.wrong}</span><small>Số câu sai</small></div>
-    <div><span>${latestResult.score}</span><small>Điểm thang 10</small></div>
-    <div><span>${latestResult.percent}%</span><small>Tỷ lệ đúng</small></div>
+    <div><span>${canShowScore ? latestResult.correct : "Ẩn"}</span><small>Số câu đúng</small></div>
+    <div><span>${canShowScore ? latestResult.wrong : "Ẩn"}</span><small>Số câu sai</small></div>
+    <div><span>${canShowScore ? latestResult.score : "Đã nộp"}</span><small>Điểm thang 10</small></div>
+    <div><span>${canShowScore ? `${latestResult.percent}%` : "Chờ công bố"}</span><small>Tỷ lệ đúng</small></div>
     <div><span>${antiCheatSummaryData.totalEvents || 0}</span><small>Sự kiện hành vi</small></div>
     <div class="text-value"><span>${escapeHTML(latestResult.uploadStatus || "Chưa gửi")}</span><small>Trạng thái gửi web</small></div>
   `;
 
-  renderCompactResultReview();
+  if (settings.showAnswersAfterSubmit === false) {
+    resultList.innerHTML = `
+      <div class="empty-state">Bài làm đã được ghi nhận. Giáo viên chưa bật chế độ xem đáp án sau khi nộp.</div>
+      ${renderAntiCheatLog(latestResult.antiCheatLog || [])}
+    `;
+  } else {
+    renderCompactResultReview();
+  }
 }
 
 function renderCompactResultReview() {
@@ -1773,14 +1993,16 @@ function renderCompactResultReview() {
 
 function saveHistory(result) {
   const history = getHistory();
+  const settings = result.settings || {};
+  const canShowScore = settings.showScoreAfterSubmit !== false;
   const item = {
     submittedAt: result.submittedAt,
     studentName: result.studentName,
     studentEmail: result.studentEmail || "",
     fileName: result.fileName,
     total: result.total,
-    correct: result.correct,
-    score: result.score,
+    correct: canShowScore ? result.correct : "Ẩn",
+    score: canShowScore ? result.score : "Chờ công bố",
     uploadStatus: result.uploadStatus || ""
   };
 
@@ -1839,30 +2061,36 @@ function exportResultCSV() {
     return;
   }
 
+  const settings = latestResult.settings || {};
+  const canShowScore = settings.showScoreAfterSubmit !== false;
+  const canShowAnswers = settings.showAnswersAfterSubmit !== false;
   const rows = [
     ["Người thi", latestResult.studentName],
     ["Email nhận kết quả", latestResult.studentEmail || ""],
     ["Tên file đề", latestResult.fileName],
     ["Ngày giờ làm bài", formatDateTime(latestResult.submittedAt)],
     ["Tổng số câu", latestResult.total],
-    ["Số câu đúng", latestResult.correct],
-    ["Số câu sai", latestResult.wrong],
-    ["Điểm", latestResult.score],
+    ["Số câu đúng", canShowScore ? latestResult.correct : "Chờ công bố"],
+    ["Số câu sai", canShowScore ? latestResult.wrong : "Chờ công bố"],
+    ["Điểm", canShowScore ? latestResult.score : "Chờ công bố"],
     ["Trạng thái gửi web", latestResult.uploadStatus || "Chưa gửi"],
-    ["Sự kiện hành vi", latestResult.antiCheatSummary ? latestResult.antiCheatSummary.totalEvents || 0 : 0],
-    [],
-    ["STT", "Câu hỏi", "Đáp án đã chọn", "Đáp án đúng", "Kết quả"]
+    ["Sự kiện hành vi", latestResult.antiCheatSummary ? latestResult.antiCheatSummary.totalEvents || 0 : 0]
   ];
 
-  latestResult.details.forEach((detail, index) => {
-    rows.push([
-      index + 1,
-      detail.questionText,
-      detail.selectedAnswer || "Chưa chọn",
-      detail.correctAnswer,
-      detail.isCorrect ? "Đúng" : "Sai"
-    ]);
-  });
+  if (canShowAnswers) {
+    rows.push([]);
+    rows.push(["STT", "Câu hỏi", "Đáp án đã chọn", "Đáp án đúng", "Kết quả"]);
+
+    latestResult.details.forEach((detail, index) => {
+      rows.push([
+        index + 1,
+        detail.questionText,
+        detail.selectedAnswer || "Chưa chọn",
+        detail.correctAnswer,
+        detail.isCorrect ? "Đúng" : "Sai"
+      ]);
+    });
+  }
 
   const antiCheatRows = buildAntiCheatLogRows(latestResult.antiCheatLog || []);
 
@@ -1881,28 +2109,37 @@ function exportResultTXT() {
     return;
   }
 
+  const settings = latestResult.settings || {};
+  const canShowScore = settings.showScoreAfterSubmit !== false;
+  const canShowAnswers = settings.showAnswersAfterSubmit !== false;
   const lines = [
     `Người thi: ${latestResult.studentName}`,
     `Email nhận kết quả: ${latestResult.studentEmail || ""}`,
     `Tên file đề: ${latestResult.fileName}`,
     `Ngày giờ làm bài: ${formatDateTime(latestResult.submittedAt)}`,
     `Tổng số câu: ${latestResult.total}`,
-    `Số câu đúng: ${latestResult.correct}`,
-    `Số câu sai: ${latestResult.wrong}`,
-    `Điểm: ${latestResult.score}`,
-    `Tỷ lệ: ${latestResult.percent}%`,
-    `Trạng thái gửi web: ${latestResult.uploadStatus || "Chưa gửi"}`,
-    "",
-    "Chi tiết từng câu:"
+    `Số câu đúng: ${canShowScore ? latestResult.correct : "Chờ công bố"}`,
+    `Số câu sai: ${canShowScore ? latestResult.wrong : "Chờ công bố"}`,
+    `Điểm: ${canShowScore ? latestResult.score : "Chờ công bố"}`,
+    `Tỷ lệ: ${canShowScore ? `${latestResult.percent}%` : "Chờ công bố"}`,
+    `Trạng thái gửi web: ${latestResult.uploadStatus || "Chưa gửi"}`
   ];
 
-  latestResult.details.forEach((detail, index) => {
+  if (canShowAnswers) {
     lines.push("");
-    lines.push(`Câu ${index + 1}: ${detail.questionText}`);
-    lines.push(`Đáp án đã chọn: ${detail.selectedAnswer || "Chưa chọn"}`);
-    lines.push(`Đáp án đúng: ${detail.correctAnswer}`);
-    lines.push(`Kết quả: ${detail.isCorrect ? "Đúng" : "Sai"}`);
-  });
+    lines.push("Chi tiết từng câu:");
+
+    latestResult.details.forEach((detail, index) => {
+      lines.push("");
+      lines.push(`Câu ${index + 1}: ${detail.questionText}`);
+      lines.push(`Đáp án đã chọn: ${detail.selectedAnswer || "Chưa chọn"}`);
+      lines.push(`Đáp án đúng: ${detail.correctAnswer}`);
+      lines.push(`Kết quả: ${detail.isCorrect ? "Đúng" : "Sai"}`);
+    });
+  } else {
+    lines.push("");
+    lines.push("Giáo viên chưa bật chế độ xem đáp án sau khi nộp.");
+  }
 
   downloadFile(`ket-qua-${Date.now()}.txt`, lines.join("\n"), "text/plain;charset=utf-8");
 }
