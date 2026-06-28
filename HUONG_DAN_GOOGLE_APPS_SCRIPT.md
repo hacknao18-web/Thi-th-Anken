@@ -75,3 +75,13 @@ Nếu cấu hình đúng, trang sẽ trả về nội dung có:
 ## 6. Thử lại từ website thi
 
 Mở website thi, nhập tên người thi, làm bài và nộp bài. Kết quả sẽ ghi vào Google Sheet đã cấu hình trong `SPREADSHEET_ID`.
+
+## 7. Link ngắn cho học viên
+
+Bản mới của Apps Script còn tạo thêm sheet `DeThi`. Sheet này dùng để lưu đề thi khi giảng viên bấm tạo link.
+
+Sau khi cập nhật mã Apps Script mới, bắt buộc phải triển khai lại:
+
+`Deploy` > `Manage deployments` > chỉnh sửa deployment đang dùng > `New version` > `Deploy`.
+
+Nếu chưa triển khai `New version`, website vẫn chạy Apps Script cũ và link ngắn `#exam=...` sẽ không tải được đề.

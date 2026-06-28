@@ -1,9 +1,34 @@
 const SPREADSHEET_ID = "1Srpu2LhrJqQj3Zfsn0uFv3eYy9Suz97zCgKc4eKlyFM";
 const SUMMARY_SHEET_NAME = "KetQuaTongHop";
 const DETAIL_SHEET_NAME = "ChiTietCauHoi";
+const EXAM_SHEET_NAME = "DeThi";
 
-function doGet() {
+function doGet(e) {
   const spreadsheet = getTargetSpreadsheet();
+  const action = e && e.parameter ? e.parameter.action : "";
+  const callback = e && e.parameter ? e.parameter.callback : "";
+
+  if (action === "getExam") {
+    let response;
+
+    try {
+      response = {
+        ok: true,
+        exam: getSharedExam(e.parameter.examId || "")
+      };
+    } catch (error) {
+      response = {
+        ok: false,
+        message: error.message
+      };
+    }
+
+    if (callback) {
+      return createJavascriptResponse(callback + "(" + JSON.stringify(response) + ");");
+    }
+
+    return createJsonResponse(response);
+  }
 
   return createJsonResponse({
     ok: true,
@@ -19,13 +44,15 @@ function doPost(e) {
 
   try {
     const payload = parsePayload(e);
-    const result = saveQuizResult(payload);
+    const isExamPayload = payload && payload.type === "exam";
+    const result = isExamPayload ? saveSharedExam(payload) : saveQuizResult(payload);
 
     return createJsonResponse({
       ok: true,
-      submissionId: result.submissionId,
+      submissionId: result.submissionId || "",
+      examId: result.examId || "",
       spreadsheetUrl: result.spreadsheetUrl,
-      message: "Da luu ket qua thi."
+      message: isExamPayload ? "Da luu de thi." : "Da luu ket qua thi."
     });
   } catch (error) {
     return createJsonResponse({
@@ -139,6 +166,104 @@ function saveQuizResult(payload) {
   };
 }
 
+function saveSharedExam(payload) {
+  validateExamPayload(payload);
+
+  const spreadsheet = getTargetSpreadsheet();
+  const examSheet = getOrCreateSheet(spreadsheet, EXAM_SHEET_NAME, [
+    "Ma de",
+    "Ten de",
+    "Tuy chon",
+    "Cau hoi",
+    "Ngay tao/cap nhat"
+  ]);
+  const examId = String(payload.examId || "").trim();
+  const now = new Date();
+  const row = [
+    examId,
+    payload.fileName || "",
+    JSON.stringify(payload.settings || {}),
+    JSON.stringify(payload.questions || []),
+    now
+  ];
+  const existingRow = findRowByFirstColumn(examSheet, examId);
+
+  if (existingRow > 0) {
+    examSheet.getRange(existingRow, 1, 1, row.length).setValues([row]);
+  } else {
+    examSheet.appendRow(row);
+  }
+
+  SpreadsheetApp.flush();
+
+  return {
+    examId: examId,
+    spreadsheetUrl: spreadsheet.getUrl()
+  };
+}
+
+function getSharedExam(examId) {
+  const safeExamId = String(examId || "").trim();
+
+  if (!safeExamId) {
+    throw new Error("Thieu ma de thi.");
+  }
+
+  const spreadsheet = getTargetSpreadsheet();
+  const examSheet = spreadsheet.getSheetByName(EXAM_SHEET_NAME);
+
+  if (!examSheet) {
+    throw new Error("Chua co sheet DeThi.");
+  }
+
+  const rowIndex = findRowByFirstColumn(examSheet, safeExamId);
+
+  if (rowIndex <= 0) {
+    throw new Error("Khong tim thay de thi.");
+  }
+
+  const row = examSheet.getRange(rowIndex, 1, 1, 5).getValues()[0];
+
+  return {
+    examId: row[0],
+    fileName: row[1],
+    settings: row[2] ? JSON.parse(row[2]) : {},
+    questions: row[3] ? JSON.parse(row[3]) : []
+  };
+}
+
+function validateExamPayload(payload) {
+  if (!payload || typeof payload !== "object") {
+    throw new Error("Du lieu de thi khong hop le.");
+  }
+
+  if (!payload.examId) {
+    throw new Error("Thieu ma de thi.");
+  }
+
+  if (!Array.isArray(payload.questions) || payload.questions.length === 0) {
+    throw new Error("De thi chua co cau hoi.");
+  }
+}
+
+function findRowByFirstColumn(sheet, value) {
+  const lastRow = sheet.getLastRow();
+
+  if (lastRow < 2) {
+    return -1;
+  }
+
+  const values = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+
+  for (let index = 0; index < values.length; index += 1) {
+    if (String(values[index][0]) === String(value)) {
+      return index + 2;
+    }
+  }
+
+  return -1;
+}
+
 function getTargetSpreadsheet() {
   const configuredId = SPREADSHEET_ID.trim();
 
@@ -205,4 +330,10 @@ function createJsonResponse(data) {
   return ContentService
     .createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+function createJavascriptResponse(source) {
+  return ContentService
+    .createTextOutput(source)
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
 }

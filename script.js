@@ -143,6 +143,9 @@ let currentStudentName = "";
 let isSubmitting = false;
 let isStudentMode = false;
 let sharedQuizConfig = null;
+let lastSavedExamId = "";
+let saveExamTimerId = null;
+let latestSharePayload = null;
 
 fileInput.addEventListener("change", handleExamFileUpload);
 demoExamBtn.addEventListener("click", () => addDemoExam(false));
@@ -201,7 +204,25 @@ function createExamFromContent(fileName, content, id = cryptoRandomId()) {
 
 function loadSharedExamFromURL() {
   const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const examId = params.get("exam");
   const encodedQuiz = params.get("quiz");
+
+  if (examId) {
+    applyStudentMode();
+    optionsSection.classList.remove("hidden");
+    startQuizBtn.disabled = true;
+    showMessage("Đang tải đề thi từ giảng viên...", "info");
+    fetchSharedExamById(examId)
+      .then((payload) => {
+        importSharedExamPayload(payload);
+        startQuizBtn.disabled = false;
+        showMessage("Đã tải đề thi. Hãy nhập tên trước khi làm bài.", "info");
+      })
+      .catch(() => {
+        showMessage("Không tải được đề thi. Vui lòng kiểm tra link hoặc xin lại link từ giảng viên.", "error");
+      });
+    return true;
+  }
 
   if (!encodedQuiz) {
     return false;
@@ -209,43 +230,74 @@ function loadSharedExamFromURL() {
 
   try {
     const payload = decodeQuizPayload(encodedQuiz);
-
-    if (!payload || !Array.isArray(payload.questions) || payload.questions.length === 0) {
-      throw new Error("Link bài thi không có câu hỏi hợp lệ.");
-    }
-
-    const questions = payload.questions.map((question, index) => ({
-      id: `shared-${index + 1}`,
-      text: question.text || "",
-      options: question.options || {},
-      correctAnswer: question.correctAnswer || ""
-    })).filter((question) => validateQuestion(question).valid);
-
-    if (questions.length === 0) {
-      throw new Error("Link bài thi không có câu hỏi hợp lệ.");
-    }
-
-    sharedQuizConfig = payload.settings || {};
-    shuffleQuestionsInput.checked = Boolean(sharedQuizConfig.shuffleQuestions);
-    shuffleAnswersInput.checked = Boolean(sharedQuizConfig.shuffleAnswers);
-    timeLimitInput.value = sharedQuizConfig.timeLimit || "";
-
-    const sharedExam = {
-      id: "shared-exam",
-      fileName: payload.fileName || "Bài thi từ giảng viên",
-      questions,
-      errors: [],
-      importedAt: new Date().toISOString()
-    };
-
-    exams = [sharedExam];
-    selectExam(sharedExam.id);
+    importSharedExamPayload(payload);
     applyStudentMode();
     return true;
   } catch (error) {
     showMessage("Link bài thi không hợp lệ hoặc đã bị cắt ngắn. Vui lòng xin lại link từ giảng viên.", "error");
     return false;
   }
+}
+
+function importSharedExamPayload(payload) {
+  if (!payload || !Array.isArray(payload.questions) || payload.questions.length === 0) {
+    throw new Error("Link bài thi không có câu hỏi hợp lệ.");
+  }
+
+  const questions = payload.questions.map((question, index) => ({
+    id: `shared-${index + 1}`,
+    text: question.text || "",
+    options: question.options || {},
+    correctAnswer: question.correctAnswer || ""
+  })).filter((question) => validateQuestion(question).valid);
+
+  if (questions.length === 0) {
+    throw new Error("Link bài thi không có câu hỏi hợp lệ.");
+  }
+
+  sharedQuizConfig = payload.settings || {};
+  shuffleQuestionsInput.checked = Boolean(sharedQuizConfig.shuffleQuestions);
+  shuffleAnswersInput.checked = Boolean(sharedQuizConfig.shuffleAnswers);
+  timeLimitInput.value = sharedQuizConfig.timeLimit || "";
+
+  const sharedExam = {
+    id: "shared-exam",
+    fileName: payload.fileName || "Bài thi từ giảng viên",
+    questions,
+    errors: [],
+    importedAt: new Date().toISOString()
+  };
+
+  exams = [sharedExam];
+  selectExam(sharedExam.id);
+}
+
+function fetchSharedExamById(examId) {
+  return new Promise((resolve, reject) => {
+    const callbackName = `receiveExam_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+    const script = document.createElement("script");
+    const cleanup = () => {
+      delete window[callbackName];
+      script.remove();
+    };
+
+    window[callbackName] = (response) => {
+      cleanup();
+
+      if (response && response.ok && response.exam) {
+        resolve(response.exam);
+      } else {
+        reject(new Error(response && response.message ? response.message : "Không tải được đề thi."));
+      }
+    };
+
+    script.onerror = () => {
+      cleanup();
+      reject(new Error("Không tải được đề thi."));
+    };
+    script.src = `${DEFAULT_RESULT_ENDPOINT}?action=getExam&examId=${encodeURIComponent(examId)}&callback=${encodeURIComponent(callbackName)}`;
+    document.body.appendChild(script);
+  });
 }
 
 function applyStudentMode() {
@@ -297,6 +349,7 @@ function updateShareLink() {
   }
 
   const payload = {
+    type: "exam",
     version: 1,
     fileName: exam.fileName,
     createdAt: new Date().toISOString(),
@@ -311,19 +364,54 @@ function updateShareLink() {
       correctAnswer: question.correctAnswer
     }))
   };
+  const examId = createExamId(payload);
+  payload.examId = examId;
+  latestSharePayload = payload;
   const baseURL = window.location.href.split("#")[0];
-  const link = `${baseURL}#quiz=${encodeQuizPayload(payload)}`;
+  const link = `${baseURL}#exam=${encodeURIComponent(examId)}`;
   shareQuizLink.value = link;
   shareLinkStatus.classList.add("hidden");
+  scheduleSaveExamForSharing(payload);
 
   const warnings = [];
   if (window.location.protocol === "file:") {
     warnings.push("Bạn đang mở file trên máy. Muốn học viên dùng được link, hãy đưa website lên hosting trước.");
   }
-  if (link.length > 18000) {
-    warnings.push("Link đang rất dài vì đề có nhiều câu; một số ứng dụng chat/email có thể cắt link.");
+  if (lastSavedExamId !== examId) {
+    warnings.push("Đang lưu đề để học viên mở được link ngắn.");
   }
   shareLinkWarning.textContent = warnings.join(" ");
+}
+
+function scheduleSaveExamForSharing(payload) {
+  window.clearTimeout(saveExamTimerId);
+  saveExamTimerId = window.setTimeout(() => {
+    saveExamForSharing(payload);
+  }, 250);
+}
+
+async function saveExamForSharing(payload) {
+  try {
+    await fetch(DEFAULT_RESULT_ENDPOINT, {
+      method: "POST",
+      mode: "no-cors",
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    lastSavedExamId = payload.examId;
+    if (shareLinkWarning) {
+      shareLinkWarning.textContent = window.location.protocol === "file:"
+        ? "Đã lưu đề. Link ngắn chỉ dùng được cho học viên sau khi website được đưa lên hosting."
+        : "Đã lưu đề. Học viên có thể mở link ngắn này để thi.";
+    }
+  } catch (error) {
+    if (shareLinkWarning) {
+      shareLinkWarning.textContent = "Chưa lưu được đề lên Google Sheet. Vui lòng kiểm tra Apps Script hoặc kết nối mạng.";
+    }
+  }
 }
 
 async function copyShareLink() {
@@ -335,6 +423,11 @@ async function copyShareLink() {
   }
 
   try {
+    if (latestSharePayload) {
+      window.clearTimeout(saveExamTimerId);
+      await saveExamForSharing(latestSharePayload);
+    }
+
     if (navigator.clipboard && window.isSecureContext) {
       await navigator.clipboard.writeText(shareQuizLink.value);
     } else {
@@ -1215,6 +1308,27 @@ function decodeQuizPayload(encodedPayload) {
   }
 
   return JSON.parse(new TextDecoder().decode(bytes));
+}
+
+function createExamId(payload) {
+  const source = JSON.stringify({
+    fileName: payload.fileName,
+    settings: payload.settings,
+    questions: payload.questions
+  });
+
+  return `de-${hashString(source)}`;
+}
+
+function hashString(value) {
+  let hash = 0x811c9dc5;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193);
+  }
+
+  return (hash >>> 0).toString(36);
 }
 
 function escapeHTML(value) {
