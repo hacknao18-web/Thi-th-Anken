@@ -123,24 +123,24 @@
         </div>
       </div>
 
-      <button id="startQuizBtn" class="primary-button" type="button">Bắt đầu làm bài</button>
-    </section>
-
-    <section id="shareSection" class="panel hidden" aria-labelledby="shareTitle">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">Link học viên</p>
-          <h2 id="shareTitle">Tạo link thi cho học viên</h2>
+      <div id="shareSection" class="share-panel hidden" aria-labelledby="shareTitle">
+        <div class="share-panel-heading">
+          <div>
+            <p class="eyebrow">Link học viên</p>
+            <h3 id="shareTitle">Tạo link thi cho học viên</h3>
+          </div>
+          <button id="copyShareLinkBtn" class="ghost-button" type="button">Sao chép link</button>
         </div>
-        <button id="copyShareLinkBtn" class="ghost-button" type="button">Sao chép link</button>
+
+        <div class="share-link-box">
+          <label for="shareQuizLink">Link bài thi</label>
+          <textarea id="shareQuizLink" rows="3" readonly></textarea>
+          <small id="shareLinkWarning"></small>
+          <span id="shareLinkStatus" class="status-pill hidden">Đã sao chép</span>
+        </div>
       </div>
 
-      <div class="share-link-box">
-        <label for="shareQuizLink">Link bài thi</label>
-        <textarea id="shareQuizLink" rows="3" readonly></textarea>
-        <small id="shareLinkWarning"></small>
-        <span id="shareLinkStatus" class="status-pill hidden">Đã sao chép</span>
-      </div>
+      <button id="startQuizBtn" class="primary-button" type="button">Bắt đầu làm bài</button>
     </section>
 
     <section id="quizSection" class="panel hidden" aria-labelledby="quizTitle">
