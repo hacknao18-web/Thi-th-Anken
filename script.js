@@ -814,31 +814,55 @@ function renderResult() {
     <div class="text-value"><span>${escapeHTML(latestResult.uploadStatus || "Chưa gửi")}</span><small>Trạng thái gửi web</small></div>
   `;
 
-  resultList.innerHTML = "";
-  latestResult.details.forEach((detail, index) => {
-    const card = document.createElement("article");
-    card.className = `question-card ${detail.isCorrect ? "correct" : "incorrect"}`;
-    card.innerHTML = `
-      <h3>Câu ${index + 1}. ${escapeHTML(detail.questionText)}</h3>
-      <ul class="answer-list">
-        ${OPTION_LABELS.map((label) => {
-          const isCorrectAnswer = label === detail.correctAnswer;
-          const isSelectedWrong = label === detail.selectedAnswer && !detail.isCorrect;
-          return `
-            <li class="answer-item ${isCorrectAnswer ? "is-correct" : ""} ${isSelectedWrong ? "is-selected-wrong" : ""}">
-              <strong>${label}.</strong> ${escapeHTML(detail.options[label])}
-            </li>
-          `;
-        }).join("")}
-      </ul>
-      <div class="question-meta">
-        <span class="tag ${detail.isCorrect ? "correct" : "incorrect"}">${detail.isCorrect ? "Đúng" : "Sai"}</span>
-        <span class="tag">Bạn chọn: ${detail.selectedAnswer || "Chưa chọn"}</span>
-        <span class="tag correct">Đáp án đúng: ${detail.correctAnswer}</span>
+  renderCompactResultReview();
+}
+
+function renderCompactResultReview() {
+  const resultRows = latestResult.details.map((detail, index) => `
+    <tr class="${detail.isCorrect ? "is-correct" : "is-incorrect"}">
+      <td>${index + 1}</td>
+      <td>
+        <strong>${escapeHTML(detail.questionText)}</strong>
+        <div class="answer-review">
+          ${OPTION_LABELS.map((label) => {
+            const isCorrectAnswer = label === detail.correctAnswer;
+            const isSelectedWrong = label === detail.selectedAnswer && !detail.isCorrect;
+            return `
+              <span class="${isCorrectAnswer ? "is-correct-answer" : ""} ${isSelectedWrong ? "is-selected-wrong" : ""}">
+                ${label}. ${escapeHTML(detail.options[label])}
+              </span>
+            `;
+          }).join("")}
+        </div>
+      </td>
+      <td>${detail.selectedAnswer || "Chưa chọn"}</td>
+      <td>${detail.correctAnswer}</td>
+      <td><span class="tag ${detail.isCorrect ? "correct" : "incorrect"}">${detail.isCorrect ? "Đúng" : "Sai"}</span></td>
+    </tr>
+  `).join("");
+
+  resultList.innerHTML = `
+    <details class="review-details" open>
+      <summary>
+        <span>Bảng kết quả và xem lại bài làm</span>
+        <small>${latestResult.details.length} câu</small>
+      </summary>
+      <div class="result-table-wrap">
+        <table class="result-table">
+          <thead>
+            <tr>
+              <th>Câu</th>
+              <th>Nội dung xem lại</th>
+              <th>Đã chọn</th>
+              <th>Đáp án</th>
+              <th>Kết quả</th>
+            </tr>
+          </thead>
+          <tbody>${resultRows}</tbody>
+        </table>
       </div>
-    `;
-    resultList.appendChild(card);
-  });
+    </details>
+  `;
 }
 
 function saveHistory(result) {
