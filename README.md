@@ -74,6 +74,22 @@ Sau khi có kết quả, bấm:
 
 Nội dung xuất gồm tên file đề, ngày giờ làm bài, điểm và chi tiết từng câu.
 
+## Theo dõi hành vi bất thường
+
+Khi học viên bắt đầu làm bài, website ghi nhận một số tín hiệu có thể cần giáo viên xem xét:
+
+- Rời khỏi tab thi và quay lại tab.
+- Chuyển sang cửa sổ khác hoặc quay lại cửa sổ thi.
+- Thoát chế độ toàn màn hình.
+- Copy hoặc paste trong trang thi.
+- Tải lại trang khi bài thi chưa nộp.
+
+Các dữ liệu này chỉ là công cụ hỗ trợ giáo viên đánh giá tính nghiêm túc của bài thi, không phải bằng chứng tuyệt đối và không tự động kết luận học viên gian lận. Hệ thống không lưu nội dung copy hoặc paste, chỉ lưu thời gian, loại sự kiện, mô tả ngắn, số lần và mã câu hỏi nếu xác định được.
+
+Trong màn hình làm bài, học viên sẽ thấy bảng đếm nhỏ cho các hành vi trên. Nếu rời tab nhiều lần hoặc thoát toàn màn hình, trang sẽ hiển thị cảnh báo để học viên biết hành vi đã được ghi nhận.
+
+Sau khi nộp bài, phần kết quả có mục **Nhật ký hành vi**. Giáo viên có thể xem STT, thời gian, loại sự kiện, mô tả và mã câu hỏi liên quan. Bấm **Xuất nhật ký CSV** để tải riêng log hành vi, hoặc bấm **Xuất CSV** để tải kết quả kèm cả nhật ký.
+
 ## Lịch sử làm bài
 
 Kết quả được lưu cục bộ trong `localStorage` của trình duyệt. Mỗi kết quả gồm:

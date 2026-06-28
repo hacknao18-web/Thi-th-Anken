@@ -2,6 +2,7 @@ const SPREADSHEET_ID = "1Srpu2LhrJqQj3Zfsn0uFv3eYy9Suz97zCgKc4eKlyFM";
 const SUMMARY_SHEET_NAME = "KetQuaTongHop";
 const DETAIL_SHEET_NAME = "ChiTietCauHoi";
 const EXAM_SHEET_NAME = "DeThi";
+const ANTI_CHEAT_SHEET_NAME = "NhatKyHanhVi";
 
 function doGet(e) {
   const spreadsheet = getTargetSpreadsheet();
@@ -109,6 +110,13 @@ function saveQuizResult(payload) {
     "So cau sai",
     "Diem",
     "Ty le dung",
+    "Roi tab",
+    "Mat focus",
+    "Thoat fullscreen",
+    "Copy",
+    "Paste",
+    "Reload",
+    "Tong su kien hanh vi",
     "Ngay ghi nhan"
   ]);
   const detailSheet = getOrCreateSheet(spreadsheet, DETAIL_SHEET_NAME, [
@@ -120,9 +128,20 @@ function saveQuizResult(payload) {
     "Dap an dung",
     "Ket qua"
   ]);
+  const antiCheatSheet = getOrCreateSheet(spreadsheet, ANTI_CHEAT_SHEET_NAME, [
+    "Ma bai nop",
+    "Nguoi thi",
+    "STT",
+    "Thoi gian",
+    "Loai su kien",
+    "Mo ta",
+    "Ma cau hoi",
+    "So lan"
+  ]);
 
   const submissionId = Utilities.getUuid();
   const recordedAt = new Date();
+  const antiCheatSummary = payload.antiCheatSummary || {};
 
   summarySheet.appendRow([
     submissionId,
@@ -135,6 +154,13 @@ function saveQuizResult(payload) {
     payload.wrong || 0,
     payload.score || 0,
     payload.percent || 0,
+    antiCheatSummary.leaveTab || 0,
+    antiCheatSummary.windowBlur || 0,
+    antiCheatSummary.exitFullscreen || 0,
+    antiCheatSummary.copyContent || 0,
+    antiCheatSummary.pasteContent || 0,
+    antiCheatSummary.pageReload || 0,
+    antiCheatSummary.totalEvents || 0,
     recordedAt
   ]);
 
@@ -156,6 +182,27 @@ function saveQuizResult(payload) {
     detailSheet
       .getRange(detailSheet.getLastRow() + 1, 1, detailRows.length, detailRows[0].length)
       .setValues(detailRows);
+  }
+
+  const antiCheatRows = Array.isArray(payload.antiCheatLog)
+    ? payload.antiCheatLog.map(function(event, index) {
+        return [
+          submissionId,
+          payload.studentName || "",
+          index + 1,
+          toDateOrText(event.timestamp),
+          event.type || "",
+          event.message || "",
+          event.questionId || "",
+          event.count || ""
+        ];
+      })
+    : [];
+
+  if (antiCheatRows.length > 0) {
+    antiCheatSheet
+      .getRange(antiCheatSheet.getLastRow() + 1, 1, antiCheatRows.length, antiCheatRows[0].length)
+      .setValues(antiCheatRows);
   }
 
   SpreadsheetApp.flush();
@@ -311,6 +358,9 @@ function getOrCreateSheet(spreadsheet, sheetName, headers) {
 
   if (sheet.getLastRow() === 0) {
     sheet.appendRow(headers);
+    sheet.setFrozenRows(1);
+  } else if (sheet.getLastColumn() < headers.length) {
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
     sheet.setFrozenRows(1);
   }
 

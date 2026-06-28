@@ -169,6 +169,15 @@
         <div id="quizProgressBody" class="progress-number-grid" aria-label="Danh sách số câu hỏi"></div>
       </section>
 
+      <section id="antiCheatPanel" class="anti-cheat-panel" aria-labelledby="antiCheatTitle">
+        <div class="anti-cheat-heading">
+          <h3 id="antiCheatTitle">Theo dõi hành vi</h3>
+          <small>Chỉ dùng để giáo viên xem xét</small>
+        </div>
+        <div id="antiCheatWarning" class="anti-cheat-warning hidden" role="alert"></div>
+        <div id="antiCheatSummary" class="anti-cheat-summary" aria-live="polite"></div>
+      </section>
+
       <div id="quizList" class="question-list"></div>
 
       <button id="submitQuizBtn" class="primary-button danger" type="button">Nộp bài</button>
@@ -182,6 +191,7 @@
         </div>
         <div class="export-actions">
           <button id="exportCsvBtn" class="ghost-button" type="button">Xuất CSV</button>
+          <button id="exportAntiCheatCsvBtn" class="ghost-button" type="button">Xuất nhật ký CSV</button>
           <button id="exportTxtBtn" class="ghost-button" type="button">Xuất TXT</button>
         </div>
       </div>
@@ -202,6 +212,16 @@
       <div id="historyList" class="history-list"></div>
     </section>
   </main>
+
+  <div id="antiCheatPopup" class="anti-cheat-popup hidden" role="alertdialog" aria-live="assertive" aria-labelledby="antiCheatPopupTitle" aria-describedby="antiCheatPopupMessage">
+    <div class="anti-cheat-popup-card">
+      <div>
+        <strong id="antiCheatPopupTitle">Cảnh báo hành vi</strong>
+        <p id="antiCheatPopupMessage"></p>
+      </div>
+      <button id="antiCheatPopupClose" class="ghost-button" type="button" aria-label="Đóng cảnh báo">Đóng</button>
+    </div>
+  </div>
 
   <script src="script.js"></script>
 </body>
