@@ -88,6 +88,12 @@
       </div>
 
       <div class="option-grid">
+        <label class="time-input">
+          <span>Tên người thi</span>
+          <input id="studentName" type="text" maxlength="80" autocomplete="name" placeholder="Nhập họ tên để phân biệt kết quả" required>
+          <small>Bắt buộc nhập trước khi bắt đầu làm bài.</small>
+        </label>
+
         <label class="choice-card">
           <input id="shuffleQuestions" type="checkbox">
           <span>
@@ -108,6 +114,13 @@
           <span>Thời gian làm bài (phút)</span>
           <input id="timeLimit" type="number" min="1" max="300" placeholder="Không giới hạn">
         </label>
+
+        <input id="resultEndpoint" type="hidden" value="https://script.google.com/macros/s/AKfycbwKOLUE_b9qy7plLVKtdYJJgZNArROm7LFe_2nWJTVtNyzPnnfWd-vAFn2Sqh6U543aYg/exec">
+
+        <div class="time-input wide-field">
+          <span>Tự động gửi kết quả</span>
+          <small>Khi nộp bài, kết quả sẽ tự gửi lên Google Sheet của giáo viên.</small>
+        </div>
       </div>
 
       <button id="startQuizBtn" class="primary-button" type="button">Bắt đầu làm bài</button>

@@ -41,6 +41,11 @@ button {
   cursor: pointer;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
 .container {
   width: min(1080px, calc(100% - 32px));
   margin: 0 auto;
@@ -229,6 +234,12 @@ h3 {
   color: var(--primary-dark);
   font-size: 1.55rem;
   font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.summary-grid .text-value span {
+  font-size: 1rem;
+  line-height: 1.35;
 }
 
 .summary-grid small {
@@ -535,6 +546,14 @@ h3 {
   padding: 10px 12px;
 }
 
+.time-input small {
+  color: var(--muted);
+}
+
+.wide-field {
+  grid-column: span 2;
+}
+
 .primary-button,
 .ghost-button {
   min-height: 48px;
@@ -604,7 +623,7 @@ h3 {
 
 .history-item {
   display: grid;
-  grid-template-columns: 1.4fr repeat(4, minmax(90px, 1fr));
+  grid-template-columns: 1.1fr 1.4fr repeat(5, minmax(90px, 1fr));
   gap: 10px;
   align-items: center;
   border: 1px solid var(--line);
@@ -646,6 +665,10 @@ h3 {
   .summary-grid,
   .option-grid {
     grid-template-columns: 1fr;
+  }
+
+  .wide-field {
+    grid-column: auto;
   }
 
   .exam-card {

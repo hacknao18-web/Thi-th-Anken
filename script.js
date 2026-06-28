@@ -16,6 +16,8 @@ const errorList = document.getElementById("errorList");
 const shuffleQuestionsInput = document.getElementById("shuffleQuestions");
 const shuffleAnswersInput = document.getElementById("shuffleAnswers");
 const timeLimitInput = document.getElementById("timeLimit");
+const studentNameInput = document.getElementById("studentName");
+const resultEndpointInput = document.getElementById("resultEndpoint");
 const startQuizBtn = document.getElementById("startQuizBtn");
 const quizList = document.getElementById("quizList");
 const submitQuizBtn = document.getElementById("submitQuizBtn");
@@ -34,6 +36,8 @@ const exportTxtBtn = document.getElementById("exportTxtBtn");
 const scrollHistoryBtn = document.getElementById("scrollHistoryBtn");
 
 const STORAGE_KEY = "aiken_quiz_history";
+const RESULT_ENDPOINT_KEY = "aiken_quiz_result_endpoint";
+const DEFAULT_RESULT_ENDPOINT = "https://script.google.com/macros/s/AKfycbwKOLUE_b9qy7plLVKtdYJJgZNArROm7LFe_2nWJTVtNyzPnnfWd-vAFn2Sqh6U543aYg/exec";
 const OPTION_LABELS = ["A", "B", "C", "D"];
 const DEMO_EXAM_ID = "demo-exam";
 const DEMO_EXAM_CONTENT = `Theo Nghị quyết số 79, kinh tế nhà nước giữ vai trò như thế nào trong nền kinh tế thị trường định hướng xã hội chủ nghĩa?
@@ -130,6 +134,8 @@ let latestResult = null;
 let timerId = null;
 let remainingSeconds = 0;
 let quizStartTime = null;
+let currentStudentName = "";
+let isSubmitting = false;
 
 fileInput.addEventListener("change", handleExamFileUpload);
 demoExamBtn.addEventListener("click", () => addDemoExam(false));
@@ -141,6 +147,8 @@ exportTxtBtn.addEventListener("click", exportResultTXT);
 scrollHistoryBtn.addEventListener("click", () => {
   document.getElementById("historySection").scrollIntoView({ behavior: "smooth" });
 });
+resultEndpointInput.value = DEFAULT_RESULT_ENDPOINT;
+localStorage.setItem(RESULT_ENDPOINT_KEY, DEFAULT_RESULT_ENDPOINT);
 
 addDemoExam(true);
 renderHistory();
@@ -508,6 +516,15 @@ function startQuiz() {
     return;
   }
 
+  const studentName = studentNameInput.value.trim().replace(/\s+/g, " ");
+
+  if (!studentName) {
+    showMessage("Vui lòng nhập tên người thi trước khi bắt đầu làm bài.", "error");
+    studentNameInput.focus();
+    return;
+  }
+
+  currentStudentName = studentName;
   const shouldShuffleQuestions = shuffleQuestionsInput.checked;
   const shouldShuffleAnswers = shuffleAnswersInput.checked;
 
@@ -533,6 +550,8 @@ function startQuiz() {
 
   quizStartTime = new Date();
   latestResult = null;
+  isSubmitting = false;
+  submitQuizBtn.disabled = false;
   resultSection.classList.add("hidden");
   quizSection.classList.remove("hidden");
   renderQuiz();
@@ -664,27 +683,33 @@ function stopTimer() {
   timerBox.classList.remove("warning");
 }
 
-function submitQuiz(autoSubmit) {
-  if (activeQuizQuestions.length === 0) {
+async function submitQuiz(autoSubmit) {
+  if (activeQuizQuestions.length === 0 || isSubmitting) {
     return;
   }
 
+  isSubmitting = true;
+  submitQuizBtn.disabled = true;
   const answers = collectAnswers();
   const unansweredCount = activeQuizQuestions.filter((question) => !answers[question.id]).length;
 
   if (!autoSubmit && unansweredCount > 0) {
     const confirmed = window.confirm(`Bạn còn ${unansweredCount} câu chưa trả lời. Bạn có chắc muốn nộp bài không?`);
     if (!confirmed) {
+      isSubmitting = false;
+      submitQuizBtn.disabled = false;
       return;
     }
   }
 
   stopTimer();
   latestResult = calculateScore(answers);
+  renderResult();
+  showMessage(autoSubmit ? "Đã hết giờ, hệ thống đã tự động nộp bài." : "Đã nộp bài và chấm điểm.", "info");
+  await sendResultToWeb(latestResult);
   saveHistory(latestResult);
   renderResult();
   renderHistory();
-  showMessage(autoSubmit ? "Đã hết giờ, hệ thống đã tự động nộp bài." : "Đã nộp bài và chấm điểm.", "info");
   resultSection.scrollIntoView({ behavior: "smooth" });
 }
 
@@ -721,6 +746,7 @@ function calculateScore(answers) {
   const percent = total > 0 ? Number(((correct / total) * 100).toFixed(2)) : 0;
 
   return {
+    studentName: currentStudentName || studentNameInput.value.trim() || "Chưa nhập tên",
     fileName: currentFileName || "Không rõ tên file",
     submittedAt: new Date().toISOString(),
     startedAt: quizStartTime ? quizStartTime.toISOString() : new Date().toISOString(),
@@ -733,6 +759,45 @@ function calculateScore(answers) {
   };
 }
 
+async function sendResultToWeb(result) {
+  const endpoint = resultEndpointInput.value.trim();
+
+  if (!endpoint) {
+    result.uploadStatus = "Chưa cấu hình URL nhận kết quả";
+    return;
+  }
+
+  try {
+    localStorage.setItem(RESULT_ENDPOINT_KEY, endpoint);
+
+    await fetch(endpoint, {
+      method: "POST",
+      mode: "no-cors",
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8"
+      },
+      body: JSON.stringify({
+        studentName: result.studentName,
+        fileName: result.fileName,
+        submittedAt: result.submittedAt,
+        startedAt: result.startedAt,
+        total: result.total,
+        correct: result.correct,
+        wrong: result.wrong,
+        score: result.score,
+        percent: result.percent,
+        details: result.details
+      })
+    });
+
+    result.uploadStatus = "Đã gửi yêu cầu lưu kết quả lên web";
+    showMessage("Đã nộp bài, chấm điểm và gửi kết quả lên web.", "info");
+  } catch (error) {
+    result.uploadStatus = "Chưa gửi được kết quả lên web";
+    showMessage("Đã nộp bài và lưu lịch sử trên máy, nhưng chưa gửi được kết quả lên web. Vui lòng kiểm tra URL hoặc kết nối mạng.", "warning");
+  }
+}
+
 function renderResult() {
   if (!latestResult) {
     return;
@@ -740,11 +805,13 @@ function renderResult() {
 
   resultSection.classList.remove("hidden");
   scoreSummary.innerHTML = `
+    <div class="text-value"><span>${escapeHTML(latestResult.studentName)}</span><small>Người thi</small></div>
     <div><span>${latestResult.total}</span><small>Tổng số câu</small></div>
     <div><span>${latestResult.correct}</span><small>Số câu đúng</small></div>
     <div><span>${latestResult.wrong}</span><small>Số câu sai</small></div>
     <div><span>${latestResult.score}</span><small>Điểm thang 10</small></div>
     <div><span>${latestResult.percent}%</span><small>Tỷ lệ đúng</small></div>
+    <div class="text-value"><span>${escapeHTML(latestResult.uploadStatus || "Chưa gửi")}</span><small>Trạng thái gửi web</small></div>
   `;
 
   resultList.innerHTML = "";
@@ -778,10 +845,12 @@ function saveHistory(result) {
   const history = getHistory();
   const item = {
     submittedAt: result.submittedAt,
+    studentName: result.studentName,
     fileName: result.fileName,
     total: result.total,
     correct: result.correct,
-    score: result.score
+    score: result.score,
+    uploadStatus: result.uploadStatus || ""
   };
 
   history.unshift(item);
@@ -802,11 +871,13 @@ function renderHistory() {
     const row = document.createElement("div");
     row.className = "history-item";
     row.innerHTML = `
+      <strong>${escapeHTML(item.studentName || "Chưa có tên")}</strong>
       <strong>${escapeHTML(item.fileName)}</strong>
       <span>${formatDateTime(item.submittedAt)}</span>
       <span>Tổng: ${item.total}</span>
       <span>Đúng: ${item.correct}</span>
       <span>Điểm: ${item.score}</span>
+      <span>${escapeHTML(item.uploadStatus || "Chưa có trạng thái gửi web")}</span>
     `;
     historyList.appendChild(row);
   });
@@ -837,12 +908,14 @@ function exportResultCSV() {
   }
 
   const rows = [
+    ["Người thi", latestResult.studentName],
     ["Tên file đề", latestResult.fileName],
     ["Ngày giờ làm bài", formatDateTime(latestResult.submittedAt)],
     ["Tổng số câu", latestResult.total],
     ["Số câu đúng", latestResult.correct],
     ["Số câu sai", latestResult.wrong],
     ["Điểm", latestResult.score],
+    ["Trạng thái gửi web", latestResult.uploadStatus || "Chưa gửi"],
     [],
     ["STT", "Câu hỏi", "Đáp án đã chọn", "Đáp án đúng", "Kết quả"]
   ];
@@ -868,6 +941,7 @@ function exportResultTXT() {
   }
 
   const lines = [
+    `Người thi: ${latestResult.studentName}`,
     `Tên file đề: ${latestResult.fileName}`,
     `Ngày giờ làm bài: ${formatDateTime(latestResult.submittedAt)}`,
     `Tổng số câu: ${latestResult.total}`,
@@ -875,6 +949,7 @@ function exportResultTXT() {
     `Số câu sai: ${latestResult.wrong}`,
     `Điểm: ${latestResult.score}`,
     `Tỷ lệ: ${latestResult.percent}%`,
+    `Trạng thái gửi web: ${latestResult.uploadStatus || "Chưa gửi"}`,
     "",
     "Chi tiết từng câu:"
   ];
