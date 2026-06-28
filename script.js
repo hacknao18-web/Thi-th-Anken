@@ -6,6 +6,7 @@ const examSection = document.getElementById("examSection");
 const examList = document.getElementById("examList");
 const previewSection = document.getElementById("previewSection");
 const optionsSection = document.getElementById("optionsSection");
+const shareSection = document.getElementById("shareSection");
 const quizSection = document.getElementById("quizSection");
 const resultSection = document.getElementById("resultSection");
 const validCount = document.getElementById("validCount");
@@ -34,6 +35,10 @@ const clearHistoryBtn = document.getElementById("clearHistoryBtn");
 const exportCsvBtn = document.getElementById("exportCsvBtn");
 const exportTxtBtn = document.getElementById("exportTxtBtn");
 const scrollHistoryBtn = document.getElementById("scrollHistoryBtn");
+const copyShareLinkBtn = document.getElementById("copyShareLinkBtn");
+const shareQuizLink = document.getElementById("shareQuizLink");
+const shareLinkWarning = document.getElementById("shareLinkWarning");
+const shareLinkStatus = document.getElementById("shareLinkStatus");
 
 const STORAGE_KEY = "aiken_quiz_history";
 const RESULT_ENDPOINT_KEY = "aiken_quiz_result_endpoint";
@@ -136,6 +141,8 @@ let remainingSeconds = 0;
 let quizStartTime = null;
 let currentStudentName = "";
 let isSubmitting = false;
+let isStudentMode = false;
+let sharedQuizConfig = null;
 
 fileInput.addEventListener("change", handleExamFileUpload);
 demoExamBtn.addEventListener("click", () => addDemoExam(false));
@@ -147,10 +154,17 @@ exportTxtBtn.addEventListener("click", exportResultTXT);
 scrollHistoryBtn.addEventListener("click", () => {
   document.getElementById("historySection").scrollIntoView({ behavior: "smooth" });
 });
+copyShareLinkBtn.addEventListener("click", copyShareLink);
+[shuffleQuestionsInput, shuffleAnswersInput, timeLimitInput].forEach((input) => {
+  input.addEventListener("input", updateShareLink);
+  input.addEventListener("change", updateShareLink);
+});
 resultEndpointInput.value = DEFAULT_RESULT_ENDPOINT;
 localStorage.setItem(RESULT_ENDPOINT_KEY, DEFAULT_RESULT_ENDPOINT);
 
-addDemoExam(true);
+if (!loadSharedExamFromURL()) {
+  addDemoExam(true);
+}
 renderHistory();
 
 function addDemoExam(isInitialLoad) {
@@ -183,6 +197,159 @@ function createExamFromContent(fileName, content, id = cryptoRandomId()) {
     errors: parsed.errors,
     importedAt: new Date().toISOString()
   };
+}
+
+function loadSharedExamFromURL() {
+  const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const encodedQuiz = params.get("quiz");
+
+  if (!encodedQuiz) {
+    return false;
+  }
+
+  try {
+    const payload = decodeQuizPayload(encodedQuiz);
+
+    if (!payload || !Array.isArray(payload.questions) || payload.questions.length === 0) {
+      throw new Error("Link bài thi không có câu hỏi hợp lệ.");
+    }
+
+    const questions = payload.questions.map((question, index) => ({
+      id: `shared-${index + 1}`,
+      text: question.text || "",
+      options: question.options || {},
+      correctAnswer: question.correctAnswer || ""
+    })).filter((question) => validateQuestion(question).valid);
+
+    if (questions.length === 0) {
+      throw new Error("Link bài thi không có câu hỏi hợp lệ.");
+    }
+
+    sharedQuizConfig = payload.settings || {};
+    shuffleQuestionsInput.checked = Boolean(sharedQuizConfig.shuffleQuestions);
+    shuffleAnswersInput.checked = Boolean(sharedQuizConfig.shuffleAnswers);
+    timeLimitInput.value = sharedQuizConfig.timeLimit || "";
+
+    const sharedExam = {
+      id: "shared-exam",
+      fileName: payload.fileName || "Bài thi từ giảng viên",
+      questions,
+      errors: [],
+      importedAt: new Date().toISOString()
+    };
+
+    exams = [sharedExam];
+    selectExam(sharedExam.id);
+    applyStudentMode();
+    return true;
+  } catch (error) {
+    showMessage("Link bài thi không hợp lệ hoặc đã bị cắt ngắn. Vui lòng xin lại link từ giảng viên.", "error");
+    return false;
+  }
+}
+
+function applyStudentMode() {
+  isStudentMode = true;
+  document.body.classList.add("student-mode");
+  document.title = "Làm bài thi trắc nghiệm";
+
+  const optionsTitle = document.getElementById("optionsTitle");
+  const quizTitle = document.getElementById("quizTitle");
+  if (optionsTitle) {
+    optionsTitle.textContent = "Thông tin người thi";
+  }
+  if (quizTitle) {
+    quizTitle.textContent = "Làm bài thi";
+  }
+
+  [
+    shuffleQuestionsInput.closest("label"),
+    shuffleAnswersInput.closest("label"),
+    timeLimitInput.closest("label"),
+    resultEndpointInput.nextElementSibling
+  ].forEach((element) => {
+    if (element) {
+      element.classList.add("student-hidden-option");
+    }
+  });
+
+  optionsSection.prepend(messageBox);
+  shareSection.classList.add("hidden");
+  previewSection.classList.add("hidden");
+  examSection.classList.add("hidden");
+  document.getElementById("historySection").classList.add("hidden");
+  scrollHistoryBtn.classList.add("hidden");
+  startQuizBtn.textContent = "Bắt đầu làm bài";
+  showMessage("Bạn đang mở link bài thi do giảng viên tạo. Hãy nhập tên trước khi làm bài.", "info");
+}
+
+function updateShareLink() {
+  if (!shareQuizLink || isStudentMode) {
+    return;
+  }
+
+  const exam = getSelectedExam();
+
+  if (!exam || exam.questions.length === 0) {
+    shareQuizLink.value = "";
+    shareLinkWarning.textContent = "";
+    return;
+  }
+
+  const payload = {
+    version: 1,
+    fileName: exam.fileName,
+    createdAt: new Date().toISOString(),
+    settings: {
+      shuffleQuestions: shuffleQuestionsInput.checked,
+      shuffleAnswers: shuffleAnswersInput.checked,
+      timeLimit: timeLimitInput.value || ""
+    },
+    questions: exam.questions.map((question) => ({
+      text: question.text,
+      options: question.options,
+      correctAnswer: question.correctAnswer
+    }))
+  };
+  const baseURL = window.location.href.split("#")[0];
+  const link = `${baseURL}#quiz=${encodeQuizPayload(payload)}`;
+  shareQuizLink.value = link;
+  shareLinkStatus.classList.add("hidden");
+
+  const warnings = [];
+  if (window.location.protocol === "file:") {
+    warnings.push("Bạn đang mở file trên máy. Muốn học viên dùng được link, hãy đưa website lên hosting trước.");
+  }
+  if (link.length > 18000) {
+    warnings.push("Link đang rất dài vì đề có nhiều câu; một số ứng dụng chat/email có thể cắt link.");
+  }
+  shareLinkWarning.textContent = warnings.join(" ");
+}
+
+async function copyShareLink() {
+  updateShareLink();
+
+  if (!shareQuizLink.value) {
+    showMessage("Chưa có bài thi hợp lệ để tạo link.", "warning");
+    return;
+  }
+
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(shareQuizLink.value);
+    } else {
+      shareQuizLink.focus();
+      shareQuizLink.select();
+      document.execCommand("copy");
+    }
+
+    shareLinkStatus.classList.remove("hidden");
+    showMessage("Đã sao chép link thi cho học viên.", "info");
+  } catch (error) {
+    shareQuizLink.focus();
+    shareQuizLink.select();
+    showMessage("Không sao chép tự động được. Bạn có thể bôi đen và sao chép link trong ô.", "warning");
+  }
 }
 
 async function handleExamFileUpload(event) {
@@ -397,6 +564,7 @@ function clearSelectedExam() {
   fileStatus.textContent = exams.length > 0 ? `${exams.length} bài thi` : "Chưa có file";
   previewSection.classList.add("hidden");
   optionsSection.classList.add("hidden");
+  shareSection.classList.add("hidden");
   quizSection.classList.add("hidden");
   resultSection.classList.add("hidden");
   stopTimer();
@@ -489,6 +657,8 @@ function renderSelectedExamPreview() {
 
   renderImportErrors();
   optionsSection.classList.toggle("hidden", exam.questions.length === 0);
+  shareSection.classList.toggle("hidden", isStudentMode || exam.questions.length === 0);
+  updateShareLink();
   resultSection.classList.add("hidden");
   quizSection.classList.add("hidden");
   stopTimer();
@@ -1016,6 +1186,35 @@ function downloadFile(fileName, content, mimeType) {
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
+}
+
+function encodeQuizPayload(payload) {
+  const bytes = new TextEncoder().encode(JSON.stringify(payload));
+  let binary = "";
+
+  for (let index = 0; index < bytes.length; index += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
+  }
+
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
+function decodeQuizPayload(encodedPayload) {
+  const base64 = encodedPayload
+    .replace(/-/g, "+")
+    .replace(/_/g, "/")
+    .padEnd(Math.ceil(encodedPayload.length / 4) * 4, "=");
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+
+  return JSON.parse(new TextDecoder().decode(bytes));
 }
 
 function escapeHTML(value) {

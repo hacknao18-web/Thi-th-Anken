@@ -154,6 +154,16 @@ h3 {
   margin-top: 14px;
 }
 
+.student-mode .upload-panel,
+.student-mode #examSection,
+.student-mode #previewSection,
+.student-mode #shareSection,
+.student-mode #historySection,
+.student-mode #scrollHistoryBtn,
+.student-mode .student-hidden-option {
+  display: none !important;
+}
+
 .upload-icon {
   display: grid;
   place-items: center;
@@ -636,6 +646,32 @@ h3 {
 
 .time-input small {
   color: var(--muted);
+}
+
+.share-link-box {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.share-link-box label {
+  font-weight: 800;
+}
+
+.share-link-box textarea {
+  width: 100%;
+  min-height: 96px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  color: var(--text);
+  padding: 12px;
+  resize: vertical;
+}
+
+.share-link-box small {
+  color: var(--orange);
+  font-weight: 700;
 }
 
 .wide-field {

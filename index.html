@@ -88,7 +88,7 @@
       </div>
 
       <div class="option-grid">
-        <label class="time-input">
+        <label id="studentNameField" class="time-input">
           <span>Tên người thi</span>
           <input id="studentName" type="text" maxlength="80" autocomplete="name" placeholder="Nhập họ tên để phân biệt kết quả" required>
           <small>Bắt buộc nhập trước khi bắt đầu làm bài.</small>
@@ -124,6 +124,23 @@
       </div>
 
       <button id="startQuizBtn" class="primary-button" type="button">Bắt đầu làm bài</button>
+    </section>
+
+    <section id="shareSection" class="panel hidden" aria-labelledby="shareTitle">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Link học viên</p>
+          <h2 id="shareTitle">Tạo link thi cho học viên</h2>
+        </div>
+        <button id="copyShareLinkBtn" class="ghost-button" type="button">Sao chép link</button>
+      </div>
+
+      <div class="share-link-box">
+        <label for="shareQuizLink">Link bài thi</label>
+        <textarea id="shareQuizLink" rows="3" readonly></textarea>
+        <small id="shareLinkWarning"></small>
+        <span id="shareLinkStatus" class="status-pill hidden">Đã sao chép</span>
+      </div>
     </section>
 
     <section id="quizSection" class="panel hidden" aria-labelledby="quizTitle">
