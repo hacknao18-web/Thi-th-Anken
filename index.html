@@ -94,6 +94,12 @@
           <small>Bắt buộc nhập trước khi bắt đầu làm bài.</small>
         </label>
 
+        <label id="studentEmailField" class="time-input">
+          <span>Email nhận kết quả</span>
+          <input id="studentEmail" type="email" maxlength="120" autocomplete="email" inputmode="email" placeholder="vidu@email.com" required>
+          <small>Kết quả sẽ được gửi về email này sau khi nộp bài.</small>
+        </label>
+
         <label class="choice-card">
           <input id="shuffleQuestions" type="checkbox">
           <span>
@@ -115,7 +121,7 @@
           <input id="timeLimit" type="number" min="1" max="300" placeholder="Không giới hạn">
         </label>
 
-        <input id="resultEndpoint" type="hidden" value="https://script.google.com/macros/s/AKfycbwKUm1D585U-B8ERczQ28e1lDpk5UZKE0RJS0ddrckrhRL7mCsf5voE2UtUrzIvloinOw/exec">
+        <input id="resultEndpoint" type="hidden" value="https://script.google.com/macros/s/AKfycbzrOvHXakaXWSbsOQx1_4oryPLfgL5X-SaUJXUlAHYuhBsMKzWQsqc2AnzoqxQCDxBVXQ/exec">
 
         <div class="time-input wide-field">
           <span>Tự động gửi kết quả</span>

@@ -43,6 +43,8 @@ Sau đó bấm `Save`.
 
 Nếu thấy dòng `Hoc vien test`, nghĩa là Apps Script đã ghi được vào Sheet.
 
+Lưu ý: bản mới có chức năng gửi kết quả về email học viên, nên lần chạy/triển khai đầu tiên Google có thể hỏi thêm quyền gửi email bằng tài khoản của bạn. Cần cấp quyền này thì `MailApp.sendEmail` mới hoạt động.
+
 ## 4. Triển khai lại Web App
 
 Sau khi sửa mã, cần triển khai phiên bản mới. Nếu không làm bước này, link `/exec` vẫn chạy mã cũ.
@@ -63,7 +65,7 @@ Thiết lập Web App nên là:
 Mở link Web App trên trình duyệt:
 
 ```text
-https://script.google.com/macros/s/AKfycbwKUm1D585U-B8ERczQ28e1lDpk5UZKE0RJS0ddrckrhRL7mCsf5voE2UtUrzIvloinOw/exec
+https://script.google.com/macros/s/AKfycbzrOvHXakaXWSbsOQx1_4oryPLfgL5X-SaUJXUlAHYuhBsMKzWQsqc2AnzoqxQCDxBVXQ/exec
 ```
 
 Nếu cấu hình đúng, trang sẽ trả về nội dung có:
@@ -75,6 +77,8 @@ Nếu cấu hình đúng, trang sẽ trả về nội dung có:
 ## 6. Thử lại từ website thi
 
 Mở website thi, nhập tên người thi, làm bài và nộp bài. Kết quả sẽ ghi vào Google Sheet đã cấu hình trong `SPREADSHEET_ID`.
+
+Bản mới yêu cầu nhập thêm email trước khi bắt đầu làm bài. Khi nộp bài, Google Sheet sẽ có thêm cột `Email`, đồng thời Apps Script sẽ gửi tóm tắt kết quả và chi tiết đúng/sai về email đó.
 
 ## 7. Link ngắn cho học viên
 

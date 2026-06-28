@@ -46,9 +46,10 @@ ANSWER: A
    - Xáo trộn câu hỏi.
    - Xáo trộn đáp án.
    - Nhập thời gian làm bài theo phút.
-2. Bấm **Bắt đầu làm bài**.
-3. Chọn đáp án bằng radio button.
-4. Bấm **Nộp bài** khi hoàn thành.
+2. Nhập họ tên và email nhận kết quả.
+3. Bấm **Bắt đầu làm bài**.
+4. Chọn đáp án bằng radio button.
+5. Bấm **Nộp bài** khi hoàn thành.
 
 Nếu còn câu chưa trả lời, website sẽ hỏi xác nhận trước khi nộp. Nếu có thời gian làm bài, hệ thống tự nộp khi hết giờ.
 
@@ -61,7 +62,10 @@ Sau khi nộp bài, trang hiển thị:
 - Số câu sai.
 - Điểm theo thang 10.
 - Tỷ lệ phần trăm.
+- Email nhận kết quả.
 - Chi tiết từng câu, đáp án đã chọn và đáp án đúng.
+
+Nếu website được cấu hình Apps Script, khi nộp bài kết quả cũng được gửi về email học viên đã nhập.
 
 Câu đúng được đánh dấu màu xanh. Câu sai được đánh dấu màu đỏ.
 

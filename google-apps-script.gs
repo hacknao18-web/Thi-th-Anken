@@ -53,6 +53,7 @@ function doPost(e) {
       submissionId: result.submissionId || "",
       examId: result.examId || "",
       spreadsheetUrl: result.spreadsheetUrl,
+      emailStatus: result.emailStatus || "",
       message: isExamPayload ? "Da luu de thi." : "Da luu ket qua thi."
     });
   } catch (error) {
@@ -68,6 +69,7 @@ function doPost(e) {
 function testGhiThu() {
   const result = saveQuizResult({
     studentName: "Hoc vien test",
+    studentEmail: "hocvientest@example.com",
     fileName: "De kiem tra ket noi",
     startedAt: new Date().toISOString(),
     submittedAt: new Date().toISOString(),
@@ -102,6 +104,7 @@ function saveQuizResult(payload) {
   const summarySheet = getOrCreateSheet(spreadsheet, SUMMARY_SHEET_NAME, [
     "Ma bai nop",
     "Nguoi thi",
+    "Email",
     "Ten file de",
     "Bat dau luc",
     "Nop luc",
@@ -122,6 +125,7 @@ function saveQuizResult(payload) {
   const detailSheet = getOrCreateSheet(spreadsheet, DETAIL_SHEET_NAME, [
     "Ma bai nop",
     "Nguoi thi",
+    "Email",
     "STT",
     "Cau hoi",
     "Dap an da chon",
@@ -131,6 +135,7 @@ function saveQuizResult(payload) {
   const antiCheatSheet = getOrCreateSheet(spreadsheet, ANTI_CHEAT_SHEET_NAME, [
     "Ma bai nop",
     "Nguoi thi",
+    "Email",
     "STT",
     "Thoi gian",
     "Loai su kien",
@@ -146,6 +151,7 @@ function saveQuizResult(payload) {
   summarySheet.appendRow([
     submissionId,
     payload.studentName || "",
+    payload.studentEmail || "",
     payload.fileName || "",
     toDateOrText(payload.startedAt),
     toDateOrText(payload.submittedAt),
@@ -169,6 +175,7 @@ function saveQuizResult(payload) {
         return [
           submissionId,
           payload.studentName || "",
+          payload.studentEmail || "",
           index + 1,
           detail.questionText || "",
           detail.selectedAnswer || "Chua chon",
@@ -189,6 +196,7 @@ function saveQuizResult(payload) {
         return [
           submissionId,
           payload.studentName || "",
+          payload.studentEmail || "",
           index + 1,
           toDateOrText(event.timestamp),
           event.type || "",
@@ -206,11 +214,74 @@ function saveQuizResult(payload) {
   }
 
   SpreadsheetApp.flush();
+  const emailStatus = sendResultEmail(payload, submissionId);
 
   return {
     submissionId: submissionId,
+    emailStatus: emailStatus,
     spreadsheetUrl: spreadsheet.getUrl()
   };
+}
+
+function sendResultEmail(payload, submissionId) {
+  const email = normalizeEmail(payload.studentEmail);
+
+  if (!isValidEmail(email)) {
+    return "Khong co email hop le de gui ket qua.";
+  }
+
+  try {
+    MailApp.sendEmail({
+      to: email,
+      subject: "Ket qua bai thi trac nghiem - " + (payload.fileName || "Bai thi"),
+      name: "He thong thi trac nghiem",
+      body: buildResultEmailBody(payload, submissionId)
+    });
+
+    return "Da gui email ket qua.";
+  } catch (error) {
+    Logger.log("Khong gui duoc email ket qua: " + error.message);
+    return "Loi gui email: " + error.message;
+  }
+}
+
+function buildResultEmailBody(payload, submissionId) {
+  const details = Array.isArray(payload.details) ? payload.details : [];
+  const detailLines = details.map(function(detail, index) {
+    return [
+      "Cau " + (index + 1) + ": " + (detail.questionText || ""),
+      "Da chon: " + (detail.selectedAnswer || "Chua chon"),
+      "Dap an dung: " + (detail.correctAnswer || ""),
+      "Ket qua: " + (detail.isCorrect ? "Dung" : "Sai")
+    ].join("\n");
+  }).join("\n\n");
+
+  const body = [
+    "Xin chao " + (payload.studentName || "hoc vien") + ",",
+    "",
+    "He thong da ghi nhan ket qua bai thi cua ban.",
+    "",
+    "Ma bai nop: " + submissionId,
+    "Nguoi thi: " + (payload.studentName || ""),
+    "Email: " + (payload.studentEmail || ""),
+    "Ten de: " + (payload.fileName || ""),
+    "Bat dau luc: " + formatDateTimeForEmail(payload.startedAt),
+    "Nop luc: " + formatDateTimeForEmail(payload.submittedAt),
+    "Tong so cau: " + (payload.total || 0),
+    "So cau dung: " + (payload.correct || 0),
+    "So cau sai: " + (payload.wrong || 0),
+    "Diem: " + (payload.score || 0) + "/10",
+    "Ty le dung: " + (payload.percent || 0) + "%",
+    "",
+    "Chi tiet cau hoi:",
+    detailLines || "Khong co chi tiet cau hoi.",
+    "",
+    "Ket qua da duoc luu vao he thong cua giao vien."
+  ].join("\n");
+
+  return body.length > 50000
+    ? body.slice(0, 50000) + "\n\nNoi dung email da duoc rut gon vi bai thi qua dai."
+    : body;
 }
 
 function saveSharedExam(payload) {
@@ -349,6 +420,14 @@ function validatePayload(payload) {
   }
 }
 
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value);
+}
+
 function getOrCreateSheet(spreadsheet, sheetName, headers) {
   let sheet = spreadsheet.getSheetByName(sheetName);
 
@@ -374,6 +453,20 @@ function toDateOrText(value) {
 
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : date;
+}
+
+function formatDateTimeForEmail(value) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return Utilities.formatDate(date, Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm:ss");
 }
 
 function createJsonResponse(data) {

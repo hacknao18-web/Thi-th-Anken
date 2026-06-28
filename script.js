@@ -18,6 +18,7 @@ const shuffleQuestionsInput = document.getElementById("shuffleQuestions");
 const shuffleAnswersInput = document.getElementById("shuffleAnswers");
 const timeLimitInput = document.getElementById("timeLimit");
 const studentNameInput = document.getElementById("studentName");
+const studentEmailInput = document.getElementById("studentEmail");
 const resultEndpointInput = document.getElementById("resultEndpoint");
 const startQuizBtn = document.getElementById("startQuizBtn");
 const quizList = document.getElementById("quizList");
@@ -51,7 +52,7 @@ const antiCheatPopupClose = document.getElementById("antiCheatPopupClose");
 const STORAGE_KEY = "aiken_quiz_history";
 const RESULT_ENDPOINT_KEY = "aiken_quiz_result_endpoint";
 const ANTI_CHEAT_SESSION_KEY = "aiken_quiz_anti_cheat_session";
-const DEFAULT_RESULT_ENDPOINT = "https://script.google.com/macros/s/AKfycbwKUm1D585U-B8ERczQ28e1lDpk5UZKE0RJS0ddrckrhRL7mCsf5voE2UtUrzIvloinOw/exec";
+const DEFAULT_RESULT_ENDPOINT = "https://script.google.com/macros/s/AKfycbzrOvHXakaXWSbsOQx1_4oryPLfgL5X-SaUJXUlAHYuhBsMKzWQsqc2AnzoqxQCDxBVXQ/exec";
 const OPTION_LABELS = ["A", "B", "C", "D"];
 const DEMO_EXAM_ID = "demo-exam";
 const CHEAT_EVENT_TYPES = Object.freeze({
@@ -159,6 +160,7 @@ let timerId = null;
 let remainingSeconds = 0;
 let quizStartTime = null;
 let currentStudentName = "";
+let currentStudentEmail = "";
 let isSubmitting = false;
 let isStudentMode = false;
 let sharedQuizConfig = null;
@@ -400,6 +402,7 @@ const AntiCheatMonitor = (() => {
       sessionId: state.sessionId,
       savedAt: new Date().toISOString(),
       studentName: currentStudentName || studentNameInput.value.trim(),
+      studentEmail: currentStudentEmail || normalizeEmail(studentEmailInput.value),
       currentFileName,
       startedAt: quizStartTime ? quizStartTime.toISOString() : "",
       remainingSeconds,
@@ -472,7 +475,9 @@ const AntiCheatMonitor = (() => {
 
   function restoreQuizSession(saved) {
     currentStudentName = saved.studentName || "";
+    currentStudentEmail = saved.studentEmail || "";
     studentNameInput.value = currentStudentName;
+    studentEmailInput.value = currentStudentEmail;
     currentFileName = saved.currentFileName || "Bài làm đã khôi phục";
     quizStartTime = saved.startedAt ? new Date(saved.startedAt) : new Date();
     activeQuizQuestions = Array.isArray(saved.activeQuizQuestions) ? saved.activeQuizQuestions : [];
@@ -1325,6 +1330,7 @@ function startQuiz() {
   }
 
   const studentName = studentNameInput.value.trim().replace(/\s+/g, " ");
+  const studentEmail = normalizeEmail(studentEmailInput.value);
 
   if (!studentName) {
     showMessage("Vui lòng nhập tên người thi trước khi bắt đầu làm bài.", "error");
@@ -1332,7 +1338,14 @@ function startQuiz() {
     return;
   }
 
+  if (!studentEmail || !isValidEmail(studentEmail)) {
+    showMessage("Vui lòng nhập email hợp lệ để nhận kết quả sau khi nộp bài.", "error");
+    studentEmailInput.focus();
+    return;
+  }
+
   currentStudentName = studentName;
+  currentStudentEmail = studentEmail;
   const shouldShuffleQuestions = shuffleQuestionsInput.checked;
   const shouldShuffleAnswers = shuffleAnswersInput.checked;
 
@@ -1562,6 +1575,7 @@ function calculateScore(answers) {
 
   return {
     studentName: currentStudentName || studentNameInput.value.trim() || "Chưa nhập tên",
+    studentEmail: currentStudentEmail || normalizeEmail(studentEmailInput.value),
     fileName: currentFileName || "Không rõ tên file",
     submittedAt: new Date().toISOString(),
     startedAt: quizStartTime ? quizStartTime.toISOString() : new Date().toISOString(),
@@ -1595,6 +1609,7 @@ async function sendResultToWeb(result) {
       },
       body: JSON.stringify({
         studentName: result.studentName,
+        studentEmail: result.studentEmail,
         fileName: result.fileName,
         submittedAt: result.submittedAt,
         startedAt: result.startedAt,
@@ -1609,8 +1624,8 @@ async function sendResultToWeb(result) {
       })
     });
 
-    result.uploadStatus = "Đã gửi yêu cầu lưu kết quả lên web";
-    showMessage("Đã nộp bài, chấm điểm và gửi kết quả lên web.", "info");
+    result.uploadStatus = "Đã gửi yêu cầu lưu kết quả lên web và email";
+    showMessage("Đã nộp bài, chấm điểm, gửi kết quả lên web và email đã nhập.", "info");
   } catch (error) {
     result.uploadStatus = "Chưa gửi được kết quả lên web";
     showMessage("Đã nộp bài và lưu lịch sử trên máy, nhưng chưa gửi được kết quả lên web. Vui lòng kiểm tra URL hoặc kết nối mạng.", "warning");
@@ -1626,6 +1641,7 @@ function renderResult() {
   const antiCheatSummaryData = latestResult.antiCheatSummary || {};
   scoreSummary.innerHTML = `
     <div class="text-value"><span>${escapeHTML(latestResult.studentName)}</span><small>Người thi</small></div>
+    <div class="text-value"><span>${escapeHTML(latestResult.studentEmail || "Chưa có email")}</span><small>Email nhận kết quả</small></div>
     <div><span>${latestResult.total}</span><small>Tổng số câu</small></div>
     <div><span>${latestResult.correct}</span><small>Số câu đúng</small></div>
     <div><span>${latestResult.wrong}</span><small>Số câu sai</small></div>
@@ -1692,6 +1708,7 @@ function saveHistory(result) {
   const item = {
     submittedAt: result.submittedAt,
     studentName: result.studentName,
+    studentEmail: result.studentEmail || "",
     fileName: result.fileName,
     total: result.total,
     correct: result.correct,
@@ -1718,6 +1735,7 @@ function renderHistory() {
     row.className = "history-item";
     row.innerHTML = `
       <strong>${escapeHTML(item.studentName || "Chưa có tên")}</strong>
+      <span>${escapeHTML(item.studentEmail || "Chưa có email")}</span>
       <strong>${escapeHTML(item.fileName)}</strong>
       <span>${formatDateTime(item.submittedAt)}</span>
       <span>Tổng: ${item.total}</span>
@@ -1755,6 +1773,7 @@ function exportResultCSV() {
 
   const rows = [
     ["Người thi", latestResult.studentName],
+    ["Email nhận kết quả", latestResult.studentEmail || ""],
     ["Tên file đề", latestResult.fileName],
     ["Ngày giờ làm bài", formatDateTime(latestResult.submittedAt)],
     ["Tổng số câu", latestResult.total],
@@ -1796,6 +1815,7 @@ function exportResultTXT() {
 
   const lines = [
     `Người thi: ${latestResult.studentName}`,
+    `Email nhận kết quả: ${latestResult.studentEmail || ""}`,
     `Tên file đề: ${latestResult.fileName}`,
     `Ngày giờ làm bài: ${formatDateTime(latestResult.submittedAt)}`,
     `Tổng số câu: ${latestResult.total}`,
@@ -1913,6 +1933,14 @@ function hashString(value) {
   }
 
   return (hash >>> 0).toString(36);
+}
+
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value);
 }
 
 function escapeHTML(value) {
