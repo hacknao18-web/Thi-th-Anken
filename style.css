@@ -267,12 +267,30 @@ h3 {
   padding: 14px;
 }
 
+.summary-grid .score-highlight {
+  grid-column: span 2;
+  border-color: #86d69c;
+  background: linear-gradient(135deg, #ecfdf3 0%, #eaf4ff 100%);
+  box-shadow: 0 14px 30px rgba(22, 101, 52, 0.12);
+}
+
 .summary-grid span {
   display: block;
   color: var(--primary-dark);
   font-size: 1.55rem;
   font-weight: 800;
   overflow-wrap: anywhere;
+}
+
+.summary-grid .score-highlight span {
+  color: var(--green);
+  font-size: 2.55rem;
+  line-height: 1.05;
+}
+
+.summary-grid .score-highlight small {
+  color: var(--green);
+  font-weight: 800;
 }
 
 .summary-grid .text-value span {
@@ -924,12 +942,6 @@ h3 {
   color: var(--red);
 }
 
-.export-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
 .timer {
   min-width: 150px;
   border: 1px solid var(--line);
@@ -1006,6 +1018,10 @@ h3 {
   .summary-grid,
   .option-grid {
     grid-template-columns: 1fr;
+  }
+
+  .summary-grid .score-highlight {
+    grid-column: auto;
   }
 
   .wide-field {
@@ -1209,13 +1225,8 @@ h3 {
     grid-template-columns: 1fr 1fr;
   }
 
-  .export-actions,
   .primary-button,
   .ghost-button {
-    width: 100%;
-  }
-
-  .export-actions button {
     width: 100%;
   }
 }

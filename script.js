@@ -41,9 +41,6 @@ const scoreSummary = document.getElementById("scoreSummary");
 const resultList = document.getElementById("resultList");
 const historyList = document.getElementById("historyList");
 const clearHistoryBtn = document.getElementById("clearHistoryBtn");
-const exportCsvBtn = document.getElementById("exportCsvBtn");
-const exportAntiCheatCsvBtn = document.getElementById("exportAntiCheatCsvBtn");
-const exportTxtBtn = document.getElementById("exportTxtBtn");
 const scrollHistoryBtn = document.getElementById("scrollHistoryBtn");
 const teacherModeBtn = document.getElementById("teacherModeBtn");
 const studentModeBtn = document.getElementById("studentModeBtn");
@@ -366,7 +363,7 @@ const AntiCheatMonitor = (() => {
   function renderLog(logs = getEvents()) {
     if (!logs.length) {
       return `
-        <details class="review-details anti-cheat-log" open>
+        <details class="review-details anti-cheat-log">
           <summary><span>Nhật ký hành vi</span><small>0 sự kiện</small></summary>
           <div class="empty-state">Chưa ghi nhận hành vi bất thường nào trong phiên làm bài.</div>
         </details>
@@ -384,7 +381,7 @@ const AntiCheatMonitor = (() => {
     `).join("");
 
     return `
-      <details class="review-details anti-cheat-log" open>
+      <details class="review-details anti-cheat-log">
         <summary><span>Nhật ký hành vi</span><small>${logs.length} sự kiện</small></summary>
         <div class="result-table-wrap">
           <table class="result-table anti-cheat-table">
@@ -507,6 +504,7 @@ const AntiCheatMonitor = (() => {
     latestResult = null;
     isSubmitting = false;
     submitQuizBtn.disabled = false;
+    submitQuizBtn.classList.remove("hidden");
     resultSection.classList.add("hidden");
     optionsSection.classList.add("hidden");
     quizSection.classList.remove("hidden");
@@ -667,6 +665,18 @@ function stopAntiCheatMonitor() {
   AntiCheatMonitor.stop();
 }
 
+async function exitFullscreenAfterSubmit() {
+  if (!document.fullscreenElement || !document.exitFullscreen) {
+    return;
+  }
+
+  try {
+    await document.exitFullscreen();
+  } catch (error) {
+    // Nếu trình duyệt từ chối thoát fullscreen tự động, người dùng vẫn có thể bấm Esc.
+  }
+}
+
 function logCheatEvent(type, detail, options) {
   return AntiCheatMonitor.log(type, detail, options);
 }
@@ -699,9 +709,6 @@ demoExamBtn.addEventListener("click", () => addDemoExam(false));
 startQuizBtn.addEventListener("click", startQuiz);
 submitQuizBtn.addEventListener("click", () => submitQuiz(false));
 clearHistoryBtn.addEventListener("click", clearHistory);
-exportCsvBtn.addEventListener("click", exportResultCSV);
-exportAntiCheatCsvBtn.addEventListener("click", exportAntiCheatLogCSV);
-exportTxtBtn.addEventListener("click", exportResultTXT);
 scrollHistoryBtn.addEventListener("click", () => {
   document.getElementById("historySection").scrollIntoView({ behavior: "smooth" });
 });
@@ -1661,6 +1668,7 @@ function startQuiz() {
   latestResult = null;
   isSubmitting = false;
   submitQuizBtn.disabled = false;
+  submitQuizBtn.classList.remove("hidden");
   resultSection.classList.add("hidden");
   quizSection.classList.remove("hidden");
   startAntiCheatMonitor();
@@ -1817,6 +1825,9 @@ async function submitQuiz(autoSubmit) {
 
   stopTimer();
   stopAntiCheatMonitor();
+  await exitFullscreenAfterSubmit();
+  submitQuizBtn.classList.add("hidden");
+  quizSection.classList.add("hidden");
   latestResult = calculateScore(answers);
   renderResult();
   showMessage(autoSubmit ? "Đã hết giờ, hệ thống đã tự động nộp bài." : "Đã nộp bài và chấm điểm.", "info");
@@ -1948,7 +1959,7 @@ function renderResult() {
     <div><span>${latestResult.total}</span><small>Tổng số câu</small></div>
     <div><span>${canShowScore ? latestResult.correct : "Ẩn"}</span><small>Số câu đúng</small></div>
     <div><span>${canShowScore ? latestResult.wrong : "Ẩn"}</span><small>Số câu sai</small></div>
-    <div><span>${canShowScore ? latestResult.score : "Đã nộp"}</span><small>Điểm thang 10</small></div>
+    <div class="score-highlight"><span>${canShowScore ? latestResult.score : "Đã nộp"}</span><small>Điểm thang 10</small></div>
     <div><span>${canShowScore ? `${latestResult.percent}%` : "Chờ công bố"}</span><small>Tỷ lệ đúng</small></div>
     <div><span>${antiCheatSummaryData.totalEvents || 0}</span><small>Sự kiện hành vi</small></div>
     <div class="text-value"><span>${escapeHTML(latestResult.uploadStatus || "Chưa gửi")}</span><small>Trạng thái gửi web</small></div>
@@ -1989,7 +2000,7 @@ function renderCompactResultReview() {
   `).join("");
 
   resultList.innerHTML = `
-    <details class="review-details" open>
+    <details class="review-details">
       <summary>
         <span>Bảng kết quả và xem lại bài làm</span>
         <small>${latestResult.details.length} câu</small>
